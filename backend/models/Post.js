@@ -50,7 +50,39 @@ const postSchema = mongoose.Schema({
         innovator: {
             type: String
         }
-    }
+    },
+    sentiment: {
+        label: {
+            type: String,
+            enum: ['positive', 'negative', 'neutral', 'mixed']
+        },
+        score: {
+            type: Number,
+            min: 0,
+            max: 1
+        },
+        emotions: [String],
+        explanation: String
+    },
+    perspectives: {
+        customerPerspective: String,
+        competitorPerspective: String,
+        newHirePerspective: String
+    },
+    scrubbedContent: {
+        type: String
+    },
+    relatedPostIds: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Post'
+    }],
+    contextRelations: [
+        {
+            postId: mongoose.Schema.Types.ObjectId,
+            relevance: Number,
+            reason: String
+        }
+    ]
 }, {
     timestamps: true
 });

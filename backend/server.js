@@ -1,6 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv').config();
 const cors = require('cors');
+const path = require('path');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 
@@ -12,6 +13,7 @@ const refineRoutes = require('./routes/refineRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const organizationRoutes = require('./routes/organizationRoutes');
+const podcastRoutes = require('./routes/podcastRoutes');
 
 // Connect to Database
 connectDB();
@@ -23,6 +25,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Serve static files for uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
@@ -30,9 +35,29 @@ app.use('/api/refine', refineRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/organizations', organizationRoutes);
+app.use('/api/podcasts', podcastRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
+});
+
+app.get('/health', async (req, res) => {
+  try {
+    // Simple health check - try to count posts
+    const Post = require('./models/Post');
+    const postCount = await Post.countDocuments();
+    res.json({
+      status: 'ok',
+      message: 'Backend is running',
+      database: 'connected',
+      totalPosts: postCount
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
 });
 
 app.listen(port, () => {

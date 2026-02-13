@@ -11,22 +11,42 @@ export default function Feed() {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      console.log('Fetching posts...');
+      console.log('=== FETCHING POSTS ===');
+      
       const userInfo = localStorage.getItem('userInfo');
       const parsedUser = userInfo ? JSON.parse(userInfo) : null;
-      console.log('User info from localStorage:', parsedUser);
-      console.log('Token available:', parsedUser?.token ? 'yes' : 'no');
-      console.log('Organization available:', parsedUser?.organization ? 'yes' : 'no');
+      console.log('📋 User info:', parsedUser);
       
+      if (!parsedUser) {
+        throw new Error('No user info in localStorage. Please login again.');
+      }
+      
+      if (!parsedUser.token) {
+        throw new Error('No token found. Please login again.');
+      }
+      
+      if (!parsedUser._id) {
+        throw new Error('No user ID found.');
+      }
+      
+      // Try to fetch posts - using default api which has interceptor
       const response = await api.get("/posts");
-      console.log('Posts fetched:', response.data);
+      console.log('✅ Posts fetched successfully:', response.data);
+      
+      if (!Array.isArray(response.data)) {
+        throw new Error('Response is not an array: ' + JSON.stringify(response.data));
+      }
+      
       setPosts(response.data);
       setError(null);
     } catch (err) {
-      console.error('Full error object:', err);
-      console.error('Error response:', err.response?.data);
+      console.error('❌ ERROR:', err.message);
+      console.error('Full error:', err);
+      console.error('Error response:', err.response);
+      
       const errorMsg = err.response?.data?.message || err.message || "Failed to fetch posts";
-      console.error('Error message:', errorMsg);
+      console.error('📌 Final error message:', errorMsg);
+      
       setError(errorMsg);
       setPosts([]);
     } finally {

@@ -1,5 +1,5 @@
 const Post = require('../models/Post');
-const { analyzePost } = require('../services/aiService');
+const { analyzePost, generatePerspectives, analyzeSentiment, scrubAnonymity, generateContextRelations } = require('../services/aiService');
 
 // @desc    Create a new post
 // @route   POST /api/posts
@@ -20,10 +20,18 @@ const createPost = async (req, res) => {
 
     // Analyze the post with AI
     const aiFeedback = await analyzePost(content);
+    const sentiment = await analyzeSentiment(content);
+    const perspectives = await generatePerspectives(content);
+    
+    let finalContent = content;
+    if (anonymityLevel === 3) {
+      finalContent = await scrubAnonymity(content);
+    }
 
     const post = new Post({
       title,
       content,
+      scrubbedContent: finalContent !== content ? finalContent : undefined,
       summary: summary || aiFeedback.summary || '',
       tags: tags || [],
       anonymityLevel: anonymityLevel || 1,
@@ -36,6 +44,17 @@ const createPost = async (req, res) => {
         executionManager: aiFeedback.executionManager,
         riskEvaluator: aiFeedback.riskEvaluator,
         innovator: aiFeedback.innovator
+      },
+      sentiment: {
+        label: sentiment.sentiment,
+        score: sentiment.score,
+        emotions: sentiment.emotions,
+        explanation: sentiment.explanation
+      },
+      perspectives: {
+        customerPerspective: perspectives.customerPerspective,
+        competitorPerspective: perspectives.competitorPerspective,
+        newHirePerspective: perspectives.newHirePerspective
       }
     });
 
@@ -53,9 +72,15 @@ const createPost = async (req, res) => {
 // @access  Private
 const getPosts = async (req, res) => {
   try {
+    console.log('📨 [getPosts] Request received');
+    console.log('📨 [getPosts] Organization:', req.organization);
+    console.log('📨 [getPosts] User:', req.user?._id);
+    
     const posts = await Post.find({ organization: req.organization })
       .populate('author', 'fullName email department')
       .sort({ createdAt: -1 });
+
+    console.log('📨 [getPosts] Found', posts.length, 'posts');
 
     // Filter author information based on anonymityLevel
     const filteredPosts = posts.map(post => {
@@ -72,6 +97,7 @@ const getPosts = async (req, res) => {
       return postObj;
     });
 
+    console.log('✅ [getPosts] Returning', filteredPosts.length, 'filtered posts');
     res.status(200).json(filteredPosts);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -180,10 +206,137 @@ const deletePost = async (req, res) => {
   }
 };
 
+// @desc    Get perspective rewrites for a post
+// @route   GET /api/posts/:postId/perspectives
+// @access  Private
+const getPerspectives = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // Verify organization match
+    if (post.organization.toString() !== req.organization.toString()) {
+      return res.status(403).json({ message: 'Cannot access post from different organization' });
+    }
+
+    if (!post.perspectives || !post.perspectives.customerPerspective) {
+      // Generate perspectives if not already stored
+      const perspectives = await generatePerspectives(post.content);
+      post.perspectives = perspectives;
+      await post.save();
+    }
+
+    res.status(200).json(post.perspectives);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get sentiment analysis for a post
+// @route   GET /api/posts/:postId/sentiment
+// @access  Private
+const getSentiment = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // Verify organization match
+    if (post.organization.toString() !== req.organization.toString()) {
+      return res.status(403).json({ message: 'Cannot access post from different organization' });
+    }
+
+    if (!post.sentiment || !post.sentiment.label) {
+      // Generate sentiment if not already stored
+      const sentiment = await analyzeSentiment(post.content);
+      post.sentiment = {
+        label: sentiment.sentiment,
+        score: sentiment.score,
+        emotions: sentiment.emotions,
+        explanation: sentiment.explanation
+      };
+      await post.save();
+    }
+
+    res.status(200).json(post.sentiment);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get related posts based on content similarity
+// @route   GET /api/posts/:postId/related
+// @access  Private
+const getRelatedPosts = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // Verify organization match
+    if (post.organization.toString() !== req.organization.toString()) {
+      return res.status(403).json({ message: 'Cannot access post from different organization' });
+    }
+
+    // Get all posts from the organization (excluding current post)
+    const allPosts = await Post.find({
+      organization: req.organization,
+      _id: { $ne: postId }
+    }).select('title');
+
+    const pastPostTitles = allPosts.map(p => p.title);
+
+    // Generate context relations using AI
+    if (pastPostTitles.length > 0) {
+      const relations = await generateContextRelations(post.content, pastPostTitles);
+
+      // Fetch full post objects for related posts
+      const relatedPosts = [];
+      for (const relation of relations) {
+        if (allPosts[relation.index]) {
+          relatedPosts.push({
+            post: allPosts[relation.index],
+            relevance: relation.relevance,
+            reason: relation.reason
+          });
+        }
+      }
+
+      res.status(200).json({
+        totalRelated: relatedPosts.length,
+        relatedPosts
+      });
+    } else {
+      res.status(200).json({
+        totalRelated: 0,
+        relatedPosts: []
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createPost,
   getPosts,
   getPost,
   updatePost,
-  deletePost
+  deletePost,
+  getPerspectives,
+  getSentiment,
+  getRelatedPosts
 };

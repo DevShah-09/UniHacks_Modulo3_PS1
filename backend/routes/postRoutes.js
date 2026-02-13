@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createPost, getPosts, getPost, updatePost, deletePost } = require('../controllers/postController');
+const { createPost, getPosts, getPost, updatePost, deletePost, getPerspectives, getSentiment, getRelatedPosts } = require('../controllers/postController');
 const { protect } = require('../middleware/authMiddleware');
 const { ensureOrgMember } = require('../middleware/orgScopeMiddleware');
 
@@ -14,7 +14,17 @@ router.post('/', createPost);
 // GET /api/posts - Get all posts in organization
 router.get('/', getPosts);
 
-// GET /api/posts/:postId - Get single post (must be after other specific routes if any)
+// Get specific post features (must come before /:postId route)
+// GET /api/posts/:postId/perspectives - Get perspective rewrites
+router.get('/:postId/perspectives', getPerspectives);
+
+// GET /api/posts/:postId/sentiment - Get sentiment analysis
+router.get('/:postId/sentiment', getSentiment);
+
+// GET /api/posts/:postId/related - Get related posts
+router.get('/:postId/related', getRelatedPosts);
+
+// GET /api/posts/:postId - Get single post
 router.get('/:postId', getPost);
 
 // PUT /api/posts/:postId - Update post
