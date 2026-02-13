@@ -1,17 +1,20 @@
 import { Link } from "react-router-dom";
 
-export default function Login() {
+export default function Signup() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-white">
       <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8">
         <h1 className="text-3xl font-bold text-center mb-2">
-          TalentBridge
+          Create Account
         </h1>
-        <p className="text-gray-500 text-center mb-6">
-          Private reflections + AI feedback for teams
-        </p>
 
-        <form className="space-y-4">
+        <form className="space-y-4 mt-6">
+          <input
+            type="text"
+            placeholder="Full Name"
+            className="w-full p-3 border rounded-xl"
+          />
+
           <input
             type="email"
             placeholder="Email"
@@ -25,14 +28,14 @@ export default function Login() {
           />
 
           <button className="w-full bg-black text-white py-3 rounded-xl font-semibold">
-            Login
+            Sign Up
           </button>
         </form>
 
         <p className="text-center text-sm mt-5 text-gray-600">
-          Don’t have an account?{" "}
-          <Link to="/signup" className="font-semibold underline">
-            Sign up
+          Already have an account?{" "}
+          <Link to="/" className="font-semibold underline">
+            Login
           </Link>
         </p>
       </div>
