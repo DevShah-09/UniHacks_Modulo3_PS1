@@ -30,7 +30,7 @@ const analyzePost = async (postContent) => {
       };
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     const prompt = `You are an expert team of advisors. Analyze the following company reflection post and provide feedback from 5 different personas in JSON format.
 
@@ -101,7 +101,7 @@ const refineText = async (rantText) => {
       return rantText;
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     const prompt = `You are an expert at transforming raw, emotional feedback into constructive, professional reflections. 
     

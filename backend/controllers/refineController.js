@@ -12,6 +12,13 @@ const refineRant = async (req, res) => {
       return res.status(400).json({ message: 'Please provide a non-empty "rant" field' });
     }
 
+    // Check if client requested AI feedback (analysis) instead of just refining
+    if (req.body.getFeedback) {
+      const { analyzePost } = require('../services/aiService');
+      const aiFeedback = await analyzePost(rant.trim());
+      return res.status(200).json({ aiFeedback });
+    }
+
     // Refine the text using AI
     const refinedText = await refineText(rant.trim());
 
