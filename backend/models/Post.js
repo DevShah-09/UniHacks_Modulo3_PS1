@@ -31,6 +31,11 @@ const postSchema = mongoose.Schema({
         ref: 'Organization',
         required: true
     },
+    // Likes: store references to users who liked this post
+    likes: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
     aiFeedback: {
         mentor: {
             type: String

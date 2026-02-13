@@ -62,12 +62,16 @@ export default function Navbar() {
           </Link>
 
           {/* Profile Circle */}
-          <Link
-            to="/profile/1"
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 font-bold"
-          >
-            Q
-          </Link>
+          {(() => {
+            const userInfo = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('userInfo') || 'null') : null;
+            const initial = userInfo?.fullName?.[0]?.toUpperCase() || 'Q';
+            const profilePath = userInfo ? `/profile/${userInfo._id}` : '/';
+            return (
+              <Link to={profilePath} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 font-bold">
+                {initial}
+              </Link>
+            );
+          })()}
         </div>
       </div>
     </div>

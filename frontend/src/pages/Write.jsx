@@ -29,6 +29,38 @@ export default function Write() {
     { key: "innovator", label: "Innovator", icon: "💡" }
   ];
 
+  // Local client-side fallback for persona feedback (used when backend fails or returns empty)
+  const localPersonaFallback = (text) => {
+    const snippet = (text || '').trim().split(/[\.\!\?]/)[0].slice(0, 120);
+    const summary = snippet || 'Brief reflection';
+    return {
+      summary,
+      mentor: `Thanks for sharing — this highlights an important issue. Consider framing the next step and the desired outcome.`,
+      critic: `The post would benefit from clearer evidence and measurable outcomes; clarify the root cause.`,
+      strategist: `Think about how this fits the longer-term roadmap and what success will look like in 3–6 months.`,
+      executionManager: `Turn this into 1–2 concrete actions with owners and deadlines to make progress immediately.`,
+      riskEvaluator: `Be mindful of potential morale and delivery risks; pilot changes incrementally.`,
+      innovator: `Experiment with small alternative approaches (A/B test or short pilot) to validate assumptions.`
+    };
+  };
+
+  const localRefineFallback = (rant) => {
+    // Light-weight client-side refine (keeps app usable offline)
+    let t = (rant || '').trim();
+    t = t.replace(/\s+/g, ' ');
+    t = t.replace(/\b(hate|terrible|stupid|idiot)\b/gi, (m) => {
+      const map = { hate: 'strongly dislike', terrible: 'concerning', stupid: 'not effective', idiot: 'uninformed' };
+      return map[m.toLowerCase()] || m;
+    });
+    if (!/^I\b|^My\b|^We\b/i.test(t)) {
+      t = 'I noticed that ' + t.charAt(0).toLowerCase() + t.slice(1);
+    }
+    if (!/(suggest|recommend|could|should)/i.test(t)) {
+      t = t + ' I would suggest discussing possible improvements and next steps.';
+    }
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  };
+
   // Cleanup debounce timer on unmount
   useEffect(() => {
     return () => {
@@ -54,12 +86,19 @@ export default function Write() {
         getFeedback: true // Flag to request all persona feedback
       });
 
-      // Assuming backend returns aiFeedback object with all personas
-      setLiveAiFeedback(response.data.aiFeedback || {});
+      // Prefer backend feedback when available; fall back to local generator otherwise
+      const remote = response.data?.aiFeedback || {};
+      const hasRemote = Object.values(remote).some(v => v && String(v).trim().length > 0);
+      if (hasRemote) {
+        setLiveAiFeedback(remote);
+      } else {
+        setLiveAiFeedback(localPersonaFallback(currentContent));
+        setFeedbackError('Using local fallback persona feedback');
+      }
     } catch (err) {
       console.error("Feedback generation error:", err);
-      setFeedbackError("Failed to generate feedback. Retrying...");
-      setLiveAiFeedback({});
+      setFeedbackError("Failed to generate feedback from server — using local fallback");
+      setLiveAiFeedback(localPersonaFallback(currentContent));
     } finally {
       setFeedbackLoading(false);
     }
@@ -91,12 +130,26 @@ export default function Write() {
 
     try {
       const response = await api.post("/refine", { rant: content });
-      setContent(response.data.refinedText);
-      // Re-generate feedback with refined content
-      generateLiveFeedback(response.data.refinedText);
+      const refined = response.data?.refinedText;
+
+      if (refined && String(refined).trim().length > 0) {
+        setContent(refined);
+        // Re-generate feedback with refined content
+        generateLiveFeedback(refined);
+      } else {
+        // Server returned no refinedText — use local fallback so the button is responsive
+        const local = localRefineFallback(content);
+        setContent(local);
+        generateLiveFeedback(local);
+        setFeedbackError('Using local fallback for refinement');
+      }
     } catch (err) {
       console.error("Refine error:", err);
-      setError("Failed to refine text. Please try again.");
+      // Use local fallback so feature still works when server is unreachable
+      const local = localRefineFallback(content);
+      setContent(local);
+      generateLiveFeedback(local);
+      setError('Server refine failed; applied local fallback.');
     } finally {
       setIsRefining(false);
     }
@@ -123,7 +176,7 @@ export default function Write() {
       });
 
       // Navigate directly to the new post
-      navigate(`/post/${response.data._id}`);
+      navigate(`/posts/${response.data._id}`);
     } catch (err) {
       console.error("Publish error:", err);
       setError(err.response?.data?.message || "Failed to publish. Please try again.");

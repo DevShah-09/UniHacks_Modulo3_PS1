@@ -8,11 +8,12 @@ export default function Register() {
     email: '',
     password: '',
     department: '',
+    organizationName: '',
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const { fullName, email, password, department } = formData;
+  const { fullName, email, password, department, organizationName } = formData;
 
   const onChange = (e) =>
     setFormData((s) => ({ ...s, [e.target.name]: e.target.value }));
@@ -100,6 +101,23 @@ export default function Register() {
               required
             />
           </div>
+
+          <div className="mb-6">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="organizationName">
+              Organization Name (Optional)
+            </label>
+            <input
+              id="organizationName"
+              name="organizationName"
+              value={organizationName}
+              onChange={onChange}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+              placeholder="e.g. Acme Corp"
+            />
+            <p className="text-xs text-gray-500 mt-1">If empty, we'll use your email domain.</p>
+          </div>
+
+
 
           <button
             type="submit"

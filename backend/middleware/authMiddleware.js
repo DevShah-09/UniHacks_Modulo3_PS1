@@ -20,7 +20,13 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Get user from the token
-    req.user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id).select('-password');
+    req.user = user;
+    
+    // Attach organization to request if user has one
+    if (user && user.organization) {
+      req.organization = user.organization;
+    }
 
     next();
   } catch (error) {

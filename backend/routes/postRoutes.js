@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createPost, getPosts, getPost, updatePost, deletePost, getPerspectives, getSentiment, getRelatedPosts } = require('../controllers/postController');
+const { createPost, getPosts, getPost, updatePost, deletePost, getPerspectives, getSentiment, getRelatedPosts, toggleLike, regenerateAiFeedback } = require('../controllers/postController');
 const { protect } = require('../middleware/authMiddleware');
 const { ensureOrgMember } = require('../middleware/orgScopeMiddleware');
 
@@ -15,6 +15,12 @@ router.post('/', createPost);
 router.get('/', getPosts);
 
 // Get specific post features (must come before /:postId route)
+// POST /api/posts/:postId/like - Toggle like/unlike
+router.post('/:postId/like', toggleLike);
+
+// POST /api/posts/:postId/ai - Regenerate / persist AI feedback for a post
+router.post('/:postId/ai', regenerateAiFeedback);
+
 // GET /api/posts/:postId/perspectives - Get perspective rewrites
 router.get('/:postId/perspectives', getPerspectives);
 

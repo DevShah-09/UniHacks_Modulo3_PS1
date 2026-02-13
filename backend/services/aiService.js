@@ -19,17 +19,10 @@ try {
 // @return  {Object} Object containing feedback from all personas
 const analyzePost = async (postContent) => {
   try {
-    if (!process.env.GOOGLE_API_KEY) {
-      console.warn('GOOGLE_API_KEY not set. Skipping AI analysis.');
-      return {
-        summary: '',
-        mentor: '',
-        critic: '',
-        strategist: '',
-        executionManager: '',
-        riskEvaluator: '',
-        innovator: ''
-      };
+    // If external AI is not configured, use local fallback engine so UI remains functional in dev
+    if (!process.env.GOOGLE_API_KEY || !genAI) {
+      const { analyzeFallback } = require('./personaEngine');
+      return analyzeFallback(postContent);
     }
 
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
@@ -98,9 +91,10 @@ Return ONLY the JSON object, no additional text.`;
 // @return  {String} Refined, professional text safe for corporate environment
 const refineText = async (rantText) => {
   try {
-    if (!process.env.GOOGLE_API_KEY) {
-      console.warn('GOOGLE_API_KEY not set. Skipping text refinement.');
-      return rantText;
+    // If external AI isn't configured, use a local fallback to keep UX functional
+    if (!process.env.GOOGLE_API_KEY || !genAI) {
+      const { refineFallback } = require('./personaEngine');
+      return refineFallback(rantText);
     }
 
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });

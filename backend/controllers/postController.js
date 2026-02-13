@@ -82,9 +82,13 @@ const getPosts = async (req, res) => {
 
     console.log('📨 [getPosts] Found', posts.length, 'posts');
 
-    // Filter author information based on anonymityLevel
+    // Filter author information based on anonymityLevel and add like metadata
     const filteredPosts = posts.map(post => {
       const postObj = post.toObject();
+
+      // Add likesCount and whether the current user liked the post
+      postObj.likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
+      postObj.likedByCurrentUser = Array.isArray(post.likes) && post.likes.some(id => id.toString() === req.user._id.toString());
 
       if (post.anonymityLevel === 3) {
         // Hide author's name and department for anonymity level 3
@@ -123,6 +127,10 @@ const getPost = async (req, res) => {
     }
 
     const postObj = post.toObject();
+
+    // Add likes metadata
+    postObj.likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
+    postObj.likedByCurrentUser = Array.isArray(post.likes) && post.likes.some(id => id.toString() === req.user._id.toString());
 
     if (post.anonymityLevel === 3) {
       postObj.author = {
@@ -330,6 +338,87 @@ const getRelatedPosts = async (req, res) => {
   }
 };
 
+// @desc    Toggle like for a post (like/unlike)
+// @route   POST /api/posts/:postId/like
+// @access  Private
+const toggleLike = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user._id;
+
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    if (post.organization.toString() !== req.organization.toString()) {
+      return res.status(403).json({ message: 'Cannot like post from different organization' });
+    }
+
+    post.likes = post.likes || [];
+    const alreadyLiked = post.likes.some(id => id.toString() === userId.toString());
+
+    if (alreadyLiked) {
+      post.likes = post.likes.filter(id => id.toString() !== userId.toString());
+    } else {
+      post.likes.push(userId);
+    }
+
+    const updated = await post.save();
+
+    res.status(200).json({
+      liked: !alreadyLiked,
+      likesCount: updated.likes.length
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Regenerate AI feedback for a post and persist it
+// @route   POST /api/posts/:postId/ai
+// @access  Private
+const regenerateAiFeedback = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    if (post.organization.toString() !== req.organization.toString()) {
+      return res.status(403).json({ message: 'Cannot access post from different organization' });
+    }
+
+    console.log(`🔁 [regenerateAiFeedback] Generating AI for post ${postId} (content length=${String(post.content || '').length})`);
+
+    // Primary AI attempt
+    let ai = await analyzePost(post.content);
+
+    // Defensive: if analyzePost returned empty fields, try local fallback directly
+    const hasContent = ai && Object.values(ai).some(v => v && String(v).trim().length > 0);
+    if (!hasContent) {
+      console.warn(`⚠️ [regenerateAiFeedback] analyzePost returned empty feedback for post ${postId}, using local fallback`);
+      const { analyzeFallback } = require('../services/personaEngine');
+      ai = analyzeFallback(post.content);
+    }
+
+    console.log('✅ [regenerateAiFeedback] AI result keys:', Object.keys(ai || {}).join(','));
+
+    post.aiFeedback = {
+      mentor: ai.mentor || '',
+      critic: ai.critic || '',
+      strategist: ai.strategist || '',
+      executionManager: ai.executionManager || '',
+      riskEvaluator: ai.riskEvaluator || '',
+      innovator: ai.innovator || ''
+    };
+
+    await post.save();
+
+    res.status(200).json(post.aiFeedback);
+  } catch (error) {
+    console.error('❌ [regenerateAiFeedback] Error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createPost,
   getPosts,
@@ -338,5 +427,7 @@ module.exports = {
   deletePost,
   getPerspectives,
   getSentiment,
-  getRelatedPosts
+  getRelatedPosts,
+  toggleLike,
+  regenerateAiFeedback
 };

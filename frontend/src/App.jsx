@@ -48,7 +48,7 @@ export default function App() {
         />
 
         <Route
-          path="/post/:id"
+          path="/posts/:postId"
           element={
             <>
               <Navbar />

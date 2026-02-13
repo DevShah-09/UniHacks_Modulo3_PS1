@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import api from '../api/axios';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
+import api, { toggleLike, refreshAiFeedback } from '../api/axios';
 import Navbar from '../components/layout/Navbar';
 
 const PERSONAS = [
@@ -25,6 +25,22 @@ export default function PostDetail() {
   const [commentLoading, setCommentLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
 
+  // Likes state
+  const [likesCount, setLikesCount] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
+
+  // AI generation state
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState(null);
+
+  // Comment input ref + location state
+  const commentInputRef = useRef(null);
+  const location = useLocation();
+
+  // Debug: show raw AI payload
+  const [showRawAi, setShowRawAi] = useState(false);
+
   // Fetch post and comments data
   useEffect(() => {
     const fetchData = async () => {
@@ -40,11 +56,34 @@ export default function PostDetail() {
 
         // Fetch post
         const postResponse = await api.get(`/posts/${postId}`);
-        setPost(postResponse.data);
+        const fetchedPost = postResponse.data;
+        setPost(fetchedPost);
 
-        // Fetch comments
-        const commentsResponse = await api.get(`ments/${postId}`);
+        // Initialize likes from server-provided metadata
+        setLikesCount(fetchedPost.likesCount || 0);
+        setLiked(Boolean(fetchedPost.likedByCurrentUser));
+
+        // Fetch comments (fixed endpoint)
+        const commentsResponse = await api.get(`/comments/${postId}`);
         setComments(commentsResponse.data || []);
+
+        // If the post lacks AI feedback, try to generate it (non-blocking)
+        const hasAi = fetchedPost.aiFeedback && Object.values(fetchedPost.aiFeedback).some(v => v && String(v).trim().length > 0);
+        if (!hasAi) {
+          try {
+            setAiGenerating(true);
+            const generated = await refreshAiFeedback(fetchedPost._id);
+            console.log('📥 [PostDetail] Auto-generated AI:', generated);
+            setPost(prev => ({ ...prev, aiFeedback: generated }));
+            setAiError(null);
+          } catch (aiErr) {
+            console.warn('AI refresh failed:', aiErr);
+            const msg = aiErr?.response?.data?.message || aiErr.message || 'AI feedback unavailable';
+            setAiError(msg);
+          } finally {
+            setAiGenerating(false);
+          }
+        }
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load post details');
         console.error('Error fetching post:', err);
@@ -57,6 +96,13 @@ export default function PostDetail() {
       fetchData();
     }
   }, [postId]);
+
+  // Focus comment input when navigated with { state: { focusComment: true } }
+  useEffect(() => {
+    if (location?.state?.focusComment && commentInputRef.current) {
+      commentInputRef.current.focus();
+    }
+  }, [location, post]);
 
   // Handle adding a new comment
   const handleAddComment = async () => {
@@ -82,11 +128,57 @@ export default function PostDetail() {
   // Handle deleting a comment
   const handleDeleteComment = async (commentId) => {
     try {
-      await api.delete(`/ents/${commentId}`);
+      await api.delete(`/comments/${commentId}`);
       setComments(comments.filter(c => c._id !== commentId));
     } catch (err) {
       setError('Failed to delete comment');
       console.error('Error deleting comment:', err);
+    }
+  };
+
+  // Handle like/unlike (optimistic UI)
+  const handleLike = async () => {
+    if (!post) return;
+    try {
+      setLikeLoading(true);
+      // optimistic
+      setLiked(prev => !prev);
+      setLikesCount(prev => prev + (liked ? -1 : 1));
+
+      const res = await toggleLike(post._id);
+      setLiked(res.liked);
+      setLikesCount(res.likesCount);
+    } catch (err) {
+      // revert on error
+      setLiked(prev => !prev);
+      setLikesCount(prev => prev + (liked ? 1 : -1));
+      console.error('Like error:', err);
+      setError('Failed to update like');
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  // Manually request AI feedback regeneration for this post
+  const handleGenerateAi = async () => {
+    if (!post) return;
+    try {
+      console.log('📡 [PostDetail] Requesting AI regeneration for post', post._id);
+      setAiGenerating(true);
+      setAiError(null);
+
+      const ai = await refreshAiFeedback(post._id);
+      console.log('📥 [PostDetail] AI regenerated:', ai);
+
+      // attach to post
+      setPost(prev => ({ ...prev, aiFeedback: ai }));
+      setAiError(null);
+    } catch (err) {
+      console.error('AI generate error:', err);
+      const message = err?.response?.data?.message || err.message || 'Failed to generate AI feedback';
+      setAiError(message);
+    } finally {
+      setAiGenerating(false);
     }
   };
 
@@ -150,7 +242,7 @@ export default function PostDetail() {
             <div className="mb-6">
               <h1 className="text-3xl font-bold mb-2">{post.title}</h1>
               <div className="flex items-center gap-4 text-gray-600 mb-4">
-                <span className="font-semibold">{post.author?.name || 'Anonymous'}</span>
+                <span className="font-semibold">{post.author?.fullName || 'Anonymous'}</span>
                 <span>•</span>
                 <span>{formatDate(post.createdAt)}</span>
               </div>
@@ -162,9 +254,23 @@ export default function PostDetail() {
             </div>
 
             {/* Reaction Counts */}
-            <button className="px-4 py-2 bg-gray-100 rounded-xl text-sm hover:bg-gray-200">
-              ❤️ {post.likeCount || 0} 💡 {post.refineCount || 0} 💬 {comments.length}
-            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <button
+                onClick={handleLike}
+                disabled={likeLoading}
+                className={`px-4 py-2 rounded-xl text-sm transition ${liked ? 'bg-red-50 text-red-600 font-semibold' : 'bg-gray-100 hover:bg-gray-200'}`}
+              >
+                ❤️ {likesCount}
+              </button>
+
+              <div className="px-4 py-2 bg-gray-100 rounded-xl text-sm">
+                💡 {post.refineCount || 0}
+              </div>
+
+              <div className="px-4 py-2 bg-gray-100 rounded-xl text-sm">
+                💬 {comments.length}
+              </div>
+            </div>
 
             {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
           </div>
@@ -203,7 +309,8 @@ export default function PostDetail() {
             {/* Comment Input */}
             <div className="border-t pt-6">
               <div className="space-y-3">
-                <textarea
+                        <textarea
+                  ref={commentInputRef}
                   value={newCommentText}
                   onChange={(e) => setNewCommentText(e.target.value)}
                   placeholder="Share your thoughts..."
@@ -247,7 +354,34 @@ export default function PostDetail() {
             {selectedPersonaData ? (
               <p className="text-gray-700 text-sm whitespace-pre-wrap">{selectedPersonaData}</p>
             ) : (
-              <p className="text-gray-400 text-sm italic">No feedback available for this persona</p>
+              <div className="text-center">
+                <p className="text-gray-400 text-sm italic mb-3">No feedback available for this persona</p>
+
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={handleGenerateAi}
+                    disabled={aiGenerating}
+                    className="px-4 py-2 bg-black text-white rounded-full text-sm"
+                  >
+                    {aiGenerating ? 'Generating...' : 'Generate AI feedback'}
+                  </button>
+
+                  <button
+                    onClick={() => setShowRawAi(s => !s)}
+                    className="px-3 py-1 border rounded text-xs"
+                  >
+                    {showRawAi ? 'Hide raw AI' : 'Show raw AI'}
+                  </button>
+                </div>
+
+                {aiError && <p className="text-red-500 text-sm mt-2">{aiError}</p>}
+
+                {showRawAi && (
+                  <pre className="mt-3 p-3 bg-gray-50 rounded text-xs overflow-x-auto text-left">
+                    {JSON.stringify(post.aiFeedback || {}, null, 2)}
+                  </pre>
+                )}
+              </div>
             )}
           </div>
 

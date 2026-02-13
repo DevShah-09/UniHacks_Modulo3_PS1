@@ -7,7 +7,8 @@ export default function Signup() {
     fullName: "",
     email: "",
     password: "",
-    department: ""
+    department: "",
+    organizationName: ""
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,6 +74,17 @@ export default function Signup() {
             onChange={(e) => setFormData({ ...formData, department: e.target.value })}
             required
           />
+
+          <div className="mb-2">
+            <input
+              type="text"
+              placeholder="Organization Name (Optional)"
+              className="w-full p-3 border rounded-xl"
+              value={formData.organizationName}
+              onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
+            />
+            <p className="text-xs text-gray-500 mt-1 ml-1">If empty, we'll use your email domain.</p>
+          </div>
 
           <button
             type="submit"

@@ -1,5 +1,9 @@
 const Post = require('../models/Post');
 
+function escapeRegex(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // @desc    Search posts by keywords and tags
 // @route   GET /api/search
 // @access  Private
@@ -11,22 +15,43 @@ const searchPosts = async (req, res) => {
 
     // Search by keywords in title and content
     if (query && query.trim()) {
+      const q = query.trim();
       searchFilter.$or = [
-        { title: { $regex: query, $options: 'i' } },
-        { content: { $regex: query, $options: 'i' } }
+        { title: { $regex: q, $options: 'i' } },
+        { content: { $regex: q, $options: 'i' } }
       ];
     }
 
-    // Filter by specific tags
+    // Build normalized tag regexes (supports tags param as comma-separated string or array)
+    const tagRegexes = [];
     if (tags) {
-      const tagArray = Array.isArray(tags) ? tags : [tags];
-      searchFilter.tags = { $in: tagArray };
+      const rawTags = Array.isArray(tags) ? tags : String(tags).split(',');
+      rawTags.forEach(t => {
+        const clean = String(t || '').trim();
+        if (clean) tagRegexes.push(new RegExp(`^${escapeRegex(clean)}$`, 'i'));
+      });
     }
 
-    // Filter by content type
-    if (contentType) {
-      searchFilter.tags = { $in: [contentType] };
+    // Handle contentType filters
+    if (contentType && String(contentType).trim()) {
+      const ct = String(contentType).trim().toLowerCase();
+
+      if (ct === 'anonymous') {
+        // Anonymous posts => anonymityLevel 3
+        searchFilter.anonymityLevel = 3;
+      } else if (ct !== 'all') {
+        // Treat other content types as tags (case-insensitive exact match)
+        tagRegexes.push(new RegExp(`^${escapeRegex(ct)}$`, 'i'));
+      }
     }
+
+    // If any tag regexes were collected, require posts to include all selected tags/contentType tag
+    if (tagRegexes.length > 0) {
+      // Use $all so selectedTags AND contentType tag are both required
+      searchFilter.tags = { $all: tagRegexes };
+    }
+
+    console.log('🔎 [searchPosts] filter:', JSON.stringify(searchFilter));
 
     const posts = await Post.find(searchFilter)
       .populate('author', 'fullName email department')

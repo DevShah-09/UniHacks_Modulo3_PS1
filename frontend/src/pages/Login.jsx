@@ -11,6 +11,7 @@ export default function Login() {
   const [orgName, setOrgName] = useState("");
   const [orgDescription, setOrgDescription] = useState("");
   const [creatingOrg, setCreatingOrg] = useState(false);
+  const [loginOrgName, setLoginOrgName] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -19,9 +20,9 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await api.post("/auth/login", { email, password });
+      const response = await api.post("/auth/login", { email, password, organizationName: loginOrgName });
       localStorage.setItem("userInfo", JSON.stringify(response.data));
-      
+
       // Check if user has an organization
       const orgResponse = await getMyOrganization();
       if (!orgResponse) {
@@ -43,12 +44,12 @@ export default function Login() {
 
     try {
       const orgResponse = await createOrganization({ name: orgName, description: orgDescription });
-      
+
       // Update localStorage with organization info
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       userInfo.organization = orgResponse._id;
       localStorage.setItem('userInfo', JSON.stringify(userInfo));
-      
+
       navigate("/feed");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create organization.");
@@ -86,6 +87,14 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+              />
+
+              <input
+                type="text"
+                placeholder="Organization Name (Optional)"
+                className="w-full p-3 border rounded-xl"
+                value={loginOrgName}
+                onChange={(e) => setLoginOrgName(e.target.value)}
               />
 
               <button

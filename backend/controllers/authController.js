@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const Organization = require('../models/Organization');
+const mongoose = require('mongoose');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -28,13 +30,38 @@ const registerUser = async (req, res) => {
       return;
     }
 
+    // Determine organization name: use provided name or fallback to email domain
+    const emailDomain = email.split('@')[1];
+    const orgName = req.body.organizationName || emailDomain;
+
+    // Find organization by name
+    let organization = await Organization.findOne({ name: orgName });
+
+    // If no organization exists, create one
+    if (!organization) {
+      organization = await Organization.create({
+        name: orgName,
+        description: `Organization for ${orgName}`,
+        createdBy: new mongoose.Types.ObjectId(), // Placeholder, will update after user creation
+        members: []
+      });
+    }
+
     // Create user
     const user = await User.create({
       fullName,
       email,
       password,
-      department
+      department,
+      organization: organization._id
     });
+
+    // Update organization with new member and set createdBy if it was a placeholder
+    organization.members.push(user._id);
+    if (!organization.createdBy || organization.members.length === 1) {
+      organization.createdBy = user._id;
+    }
+    await organization.save();
 
     if (user) {
       res.status(201).json({
@@ -42,6 +69,7 @@ const registerUser = async (req, res) => {
         fullName: user.fullName,
         email: user.email,
         department: user.department,
+        organization: organization._id,
         token: generateToken(user._id)
       });
     }
@@ -57,17 +85,29 @@ const registerUser = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, organizationName } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate('organization');
 
     if (user && (await user.matchPassword(password))) {
+
+      // Validate organization name if provided
+      if (organizationName) {
+        if (!user.organization) {
+          return res.status(401).json({ message: 'Access denied. You are not linked to any organization.' });
+        }
+        if (user.organization.name !== organizationName) {
+          return res.status(401).json({ message: `Access denied. You do not belong to organization '${organizationName}'.` });
+        }
+      }
+
       res.json({
         _id: user.id,
         fullName: user.fullName,
         email: user.email,
         department: user.department,
+        organization: user.organization ? user.organization._id : null,
         token: generateToken(user._id)
       });
     } else {

@@ -1,21 +1,23 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toggleLike } from "../../api/axios";
 
 export default function PostCard({ post }) {
   const navigate = useNavigate();
-  
+
   // Extract author name
   const authorName = post.author?.fullName || "Anonymous";
   const authorInitial = authorName[0]?.toUpperCase() || "A";
-  
+
   // Create preview from content
   const preview = post.content?.substring(0, 150) + (post.content?.length > 150 ? "..." : "") || "";
-  
+
   // Get first tag or use default
   const tag = post.tags?.[0] || "Post";
-  
+
   // Get summary from feedback or create one
   const summary = post.summary || "Check this reflection";
-  
+
   // Format date
   const formatDate = (dateString) => {
     if (!dateString) return "Just now";
@@ -25,12 +27,33 @@ export default function PostCard({ post }) {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-    
+
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString();
+  };
+
+  const [likesCount, setLikesCount] = useState(post.likesCount || 0);
+  const [liked, setLiked] = useState(Boolean(post.likedByCurrentUser));
+
+  const handleLike = async (e) => {
+    e.stopPropagation();
+    try {
+      // Optimistic UI update
+      setLiked(prev => !prev);
+      setLikesCount(prev => prev + (liked ? -1 : 1));
+
+      const res = await toggleLike(post._id);
+      setLiked(res.liked);
+      setLikesCount(res.likesCount);
+    } catch (err) {
+      // revert on error
+      setLiked(prev => !prev);
+      setLikesCount(prev => prev + (liked ? 1 : -1));
+      console.error('Like error:', err);
+    }
   };
 
   return (
@@ -42,10 +65,10 @@ export default function PostCard({ post }) {
     >
       {/* Header */}
       <div className="flex justify-between items-center mb-5">
-        
+
         {/* Left Side: Avatar + Author Info */}
         <div className="flex items-center gap-3">
-          
+
           {/* Avatar Circle */}
           <div className="w-11 h-11 rounded-full bg-[#D9D6FF] flex items-center justify-center font-bold text-black">
             {authorInitial}
@@ -83,15 +106,20 @@ export default function PostCard({ post }) {
         ⚡ {summary}
       </p>
 
-      {/* Reactions - Placeholder */}
-      <div className="flex gap-6 text-sm text-gray-600">
-        <button className="hover:text-black transition" onClick={(e) => e.stopPropagation()}>
-          ❤️ View
+      {/* Reactions */}
+      <div className="flex gap-6 text-sm text-gray-600 items-center">
+        <button
+          className={`flex items-center gap-2 ${liked ? 'text-red-600 font-semibold' : 'hover:text-black'}`}
+          onClick={handleLike}
+        >
+          <span>❤️</span>
+          <span>{likesCount}</span>
         </button>
-        <button className="hover:text-black transition" onClick={(e) => e.stopPropagation()}>
+
+        <button className="hover:text-black transition" onClick={(e) => { e.stopPropagation(); /* TODO: open feedback modal */ }}>
           💡 Feedback
         </button>
-        <button className="hover:text-black transition" onClick={(e) => e.stopPropagation()}>
+        <button className="hover:text-black transition" onClick={(e) => { e.stopPropagation(); navigate(`/posts/${post._id}`, { state: { focusComment: true } }); }}>
           💬 Discuss
         </button>
       </div>

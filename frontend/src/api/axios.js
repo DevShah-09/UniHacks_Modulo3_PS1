@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// Normalize VITE_API_URL to prevent malformed values like ":5000/api"
+const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const baseURL = rawBase.startsWith(':') ? `http://localhost${rawBase}` : rawBase;
+console.log('🔗 API baseURL:', rawBase, '->', baseURL);
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,7 +27,13 @@ api.interceptors.request.use(
     } else {
       console.warn('⚠️ No userInfo found in localStorage');
     }
-    console.log('📤 API Request:', config.method.toUpperCase(), config.url);
+    // show full request URL including baseURL for easier debugging
+    try {
+      const fullUrl = config.baseURL ? new URL(config.url, config.baseURL).toString() : config.url;
+      console.log('📤 API Request:', config.method.toUpperCase(), fullUrl);
+    } catch (e) {
+      console.log('📤 API Request (fallback):', config.method.toUpperCase(), config.baseURL, config.url);
+    }
     return config;
   },
   (error) => {
@@ -59,6 +70,12 @@ export const createOrganization = async (orgData) => {
   return response.data;
 };
 
+// Add a member to an organization (only org creator can call this)
+export const addOrgMember = async (orgId, email) => {
+  const response = await api.post(`/organizations/${orgId}/members`, { email });
+  return response.data;
+};
+
 // Posts helpers
 export const searchPosts = async (query = '', tags = [], contentType = '') => {
   const params = new URLSearchParams();
@@ -76,6 +93,18 @@ export const getTags = async () => {
 
 export const getPostsByTag = async (tagName) => {
   const response = await api.get(`/search/tag/${tagName}`);
+  return response.data;
+};
+
+// Toggle like/unlike for a post
+export const toggleLike = async (postId) => {
+  const response = await api.post(`/posts/${postId}/like`);
+  return response.data;
+};
+
+// Regenerate / persist AI feedback for a post
+export const refreshAiFeedback = async (postId) => {
+  const response = await api.post(`/posts/${postId}/ai`);
   return response.data;
 };
 
