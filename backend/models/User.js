@@ -18,6 +18,10 @@ const userSchema = mongoose.Schema({
     department: {
         type: String,
         required: [true, 'Please specify a department']
+    },
+    organization: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization'
     }
 }, {
     timestamps: true

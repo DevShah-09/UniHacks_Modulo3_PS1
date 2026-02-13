@@ -1,31 +1,30 @@
+import { useState, useEffect } from "react";
 import Navbar from "../components/layout/Navbar";
 import PostCard from "../components/posts/PostCard";
+import api from "../api/axios";
 
 export default function Feed() {
-  const posts = [
-    {
-      author: "Aditi Sharma",
-      dept: "Product",
-      time: "2h ago",
-      tag: "Reflection",
-      title: "Reflection on our sprint delays",
-      preview:
-        "This week made me realize our timelines are breaking because of unclear ownership...",
-      summary: "AI TL;DR: Better sprint clarity needed to reduce delays.",
-      reactions: { heart: 12, idea: 4, comments: 6 },
-    },
-    {
-      author: "Anonymous",
-      dept: "Engineering",
-      time: "5h ago",
-      tag: "Anonymous Thought",
-      title: "A thought on burnout culture",
-      preview:
-        "We celebrate late-night work too much. Maybe sustainable pace is the real win...",
-      summary: "AI TL;DR: Hustle culture may harm long-term productivity.",
-      reactions: { heart: 20, idea: 7, comments: 10 },
-    },
-  ];
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get("/api/posts");
+        setPosts(response.data);
+        setError(null);
+      } catch (err) {
+        setError(err.message || "Failed to fetch posts");
+        setPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
 
   return (
     <div
@@ -74,7 +73,29 @@ export default function Feed() {
 
           {/* Posts */}
           <div className="space-y-7">
-            {posts.map((post, index) => (
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+                  <p className="mt-4 text-gray-600">Loading posts...</p>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+                <p className="text-red-700 font-semibold">Error loading posts</p>
+                <p className="text-red-600 text-sm mt-2">{error}</p>
+              </div>
+            )}
+
+            {!loading && !error && posts.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-600">No posts yet. Start the conversation!</p>
+              </div>
+            )}
+
+            {!loading && !error && posts.map((post, index) => (
               <PostCard key={index} post={post} />
             ))}
           </div>

@@ -9,11 +9,12 @@ try {
   }
 } catch (err) {
   console.warn('@google/generative-ai not available; AI features will be disabled.');
+  console.error('Generative AI Load Error:', err);
 }
 
-// @desc    Analyze a post and generate AI feedback
+// @desc    Analyze a post and generate AI feedback from multiple personas
 // @param   {String} postContent - The content of the post to analyze
-// @return  {Object} Object containing summary, mentorFeedback, and criticFeedback
+// @return  {Object} Object containing feedback from all personas
 const analyzePost = async (postContent) => {
   try {
     if (!process.env.GOOGLE_API_KEY) {
@@ -21,22 +22,30 @@ const analyzePost = async (postContent) => {
       return {
         summary: '',
         mentor: '',
-        critic: ''
+        critic: '',
+        strategist: '',
+        executionManager: '',
+        riskEvaluator: '',
+        innovator: ''
       };
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const prompt = `You are an expert mentor and critic. Analyze the following company reflection post and provide feedback in JSON format.
+    const prompt = `You are an expert team of advisors. Analyze the following company reflection post and provide feedback from 5 different personas in JSON format.
 
 Post Content:
 "${postContent}"
 
-Provide your response as a valid JSON object with exactly these three fields (keep responses concise):
+Provide your response as a valid JSON object with exactly these seven fields (keep responses concise, 1-2 sentences each):
 {
   "summary": "A single sentence summary of the post's main idea",
-  "mentorFeedback": "A supportive and encouraging comment (1-2 sentences) that acknowledges the reflection's value",
-  "criticFeedback": "A logical critique pointing out potential risks or areas to reconsider (1-2 sentences)"
+  "mentorFeedback": "A supportive and encouraging comment acknowledging the reflection's value",
+  "criticFeedback": "A logical critique pointing out potential risks or areas to reconsider",
+  "strategistFeedback": "Strategic implications and long-term thinking perspective",
+  "executionManagerFeedback": "Practical advice on how to implement or action this reflection",
+  "riskEvaluatorFeedback": "Potential risks, downsides, or unintended consequences",
+  "innovatorFeedback": "Creative ideas to build on this reflection or new perspectives"
 }
 
 Return ONLY the JSON object, no additional text.`;
@@ -61,7 +70,11 @@ Return ONLY the JSON object, no additional text.`;
     return {
       summary: feedbackData.summary || '',
       mentor: feedbackData.mentorFeedback || '',
-      critic: feedbackData.criticFeedback || ''
+      critic: feedbackData.criticFeedback || '',
+      strategist: feedbackData.strategistFeedback || '',
+      executionManager: feedbackData.executionManagerFeedback || '',
+      riskEvaluator: feedbackData.riskEvaluatorFeedback || '',
+      innovator: feedbackData.innovatorFeedback || ''
     };
   } catch (error) {
     console.error('Error analyzing post with AI:', error.message);
@@ -69,7 +82,11 @@ Return ONLY the JSON object, no additional text.`;
     return {
       summary: '',
       mentor: '',
-      critic: ''
+      critic: '',
+      strategist: '',
+      executionManager: '',
+      riskEvaluator: '',
+      innovator: ''
     };
   }
 };
@@ -84,10 +101,10 @@ const refineText = async (rantText) => {
       return rantText;
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     const prompt = `You are an expert at transforming raw, emotional feedback into constructive, professional reflections. 
-
+    
 Raw text:
 "${rantText}"
 
@@ -105,6 +122,13 @@ Return ONLY the refined text, no explanations or markdown formatting.`;
 
     return refinedText;
   } catch (error) {
+    const fs = require('fs');
+    try {
+      fs.appendFileSync('./log.txt', 'REFINE ERROR: ' + error + '\n', 'utf8');
+      fs.appendFileSync('./log.txt', 'REFINE ERROR MESSAGE: ' + error.message + '\n', 'utf8');
+    } catch (e) {
+      // ignore
+    }
     console.error('Error refining text with AI:', error.message);
     // Return original text on error to prevent route failure
     return rantText;

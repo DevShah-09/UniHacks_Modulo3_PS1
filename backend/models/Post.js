@@ -26,11 +26,28 @@ const postSchema = mongoose.Schema({
         ref: 'User',
         required: true
     },
+    organization: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization',
+        required: true
+    },
     aiFeedback: {
         mentor: {
             type: String
         },
         critic: {
+            type: String
+        },
+        strategist: {
+            type: String
+        },
+        executionManager: {
+            type: String
+        },
+        riskEvaluator: {
+            type: String
+        },
+        innovator: {
             type: String
         }
     }

@@ -9,6 +9,9 @@ console.log('NODE_ENV=', process.env.NODE_ENV || '<not set>');
 console.log('JWT_SECRET set?', !!process.env.JWT_SECRET);
 const postRoutes = require('./routes/postRoutes');
 const refineRoutes = require('./routes/refineRoutes');
+const commentRoutes = require('./routes/commentRoutes');
+const searchRoutes = require('./routes/searchRoutes');
+const organizationRoutes = require('./routes/organizationRoutes');
 
 // Connect to Database
 connectDB();
@@ -24,6 +27,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/refine', refineRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/organizations', organizationRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
