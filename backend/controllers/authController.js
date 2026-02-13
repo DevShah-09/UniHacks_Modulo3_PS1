@@ -46,8 +46,10 @@ const registerUser = async (req, res) => {
       });
     }
   } catch (error) {
-    console.log(error);
-    res.status(400).json({ message: 'Invalid user data' });
+    console.error(error);
+    const publicMessage = 'Invalid user data';
+    const detail = process.env.NODE_ENV === 'production' ? undefined : (error.message || error.toString());
+    res.status(400).json({ message: publicMessage, error: detail });
   }
 };
 

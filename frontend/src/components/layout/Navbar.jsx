@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function Navbar() {
   return (
     <nav className="w-full fixed top-0 left-0 bg-[#F8F6F2] border-b border-[#E5E2DC] z-50">
@@ -6,7 +8,7 @@ export default function Navbar() {
         {/* Left Side */}
         <div className="flex items-center gap-8">
           <h1 className="text-xl font-bold text-[#111]">
-            TalentBridge
+            <Link to="/">TalentBridge</Link>
           </h1>
 
           <div className="flex gap-6 text-sm font-medium text-[#444]">
@@ -28,8 +30,12 @@ export default function Navbar() {
             className="px-4 py-2 rounded-full border border-[#E5E2DC] bg-white text-sm focus:outline-none"
           />
 
-          <div className="w-9 h-9 rounded-full bg-[#D9D6FF] flex items-center justify-center font-bold">
-            Q
+          <div className="flex items-center gap-3">
+            <Link to="/login" className="text-sm text-gray-700 hover:text-black">Log in</Link>
+            <Link to="/register" className="px-3 py-1 rounded-full border border-gray-300 text-sm font-medium hover:bg-gray-50">Sign up</Link>
+            <div className="w-9 h-9 rounded-full bg-[#D9D6FF] flex items-center justify-center font-bold">
+              Q
+            </div>
           </div>
         </div>
       </div>
