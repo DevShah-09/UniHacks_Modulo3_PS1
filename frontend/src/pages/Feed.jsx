@@ -8,21 +8,33 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get("/api/posts");
-        setPosts(response.data);
-        setError(null);
-      } catch (err) {
-        setError(err.message || "Failed to fetch posts");
-        setPosts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching posts...');
+      const userInfo = localStorage.getItem('userInfo');
+      const parsedUser = userInfo ? JSON.parse(userInfo) : null;
+      console.log('User info from localStorage:', parsedUser);
+      console.log('Token available:', parsedUser?.token ? 'yes' : 'no');
+      console.log('Organization available:', parsedUser?.organization ? 'yes' : 'no');
+      
+      const response = await api.get("/posts");
+      console.log('Posts fetched:', response.data);
+      setPosts(response.data);
+      setError(null);
+    } catch (err) {
+      console.error('Full error object:', err);
+      console.error('Error response:', err.response?.data);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to fetch posts";
+      console.error('Error message:', errorMsg);
+      setError(errorMsg);
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchPosts();
   }, []);
 
@@ -55,10 +67,10 @@ export default function Feed() {
 
       {/* Page Layout */}
       <div className="relative max-w-6xl mx-auto pt-44 px-6 grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
+
         {/* LEFT FEED */}
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* Heading */}
           <div>
             <h1 className="text-5xl font-extrabold text-black tracking-tight">
@@ -83,9 +95,15 @@ export default function Feed() {
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-                <p className="text-red-700 font-semibold">Error loading posts</p>
-                <p className="text-red-600 text-sm mt-2">{error}</p>
+              <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-8 text-center">
+                <p className="text-red-700 font-bold text-lg mb-2">⚠️ Error loading posts</p>
+                <p className="text-red-600 text-sm mb-4 break-words">{error}</p>
+                <button 
+                  onClick={fetchPosts}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                >
+                  Retry
+                </button>
               </div>
             )}
 

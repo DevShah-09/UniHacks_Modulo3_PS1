@@ -101,7 +101,7 @@ const refineText = async (rantText) => {
       return rantText;
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `You are an expert at transforming raw, emotional feedback into constructive, professional reflections. 
     

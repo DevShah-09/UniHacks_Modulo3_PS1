@@ -35,8 +35,8 @@ export const getMyOrganization = async () => {
   }
 };
 
-export const createOrganization = async (name, description = '') => {
-  const response = await api.post('/organizations', { name, description });
+export const createOrganization = async (orgData) => {
+  const response = await api.post('/organizations', orgData);
   return response.data;
 };
 

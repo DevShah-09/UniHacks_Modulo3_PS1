@@ -1,9 +1,44 @@
+import { useNavigate } from "react-router-dom";
+
 export default function PostCard({ post }) {
+  const navigate = useNavigate();
+  
+  // Extract author name
+  const authorName = post.author?.fullName || "Anonymous";
+  const authorInitial = authorName[0]?.toUpperCase() || "A";
+  
+  // Create preview from content
+  const preview = post.content?.substring(0, 150) + (post.content?.length > 150 ? "..." : "") || "";
+  
+  // Get first tag or use default
+  const tag = post.tags?.[0] || "Post";
+  
+  // Get summary from feedback or create one
+  const summary = post.summary || "Check this reflection";
+  
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "Just now";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
   return (
     <div
+      onClick={() => navigate(`/posts/${post._id}`)}
       className="bg-white/60 backdrop-blur-xl border border-white/40 
       rounded-3xl p-7 shadow-md hover:shadow-xl hover:-translate-y-1 
-      transition-all duration-300"
+      transition-all duration-300 cursor-pointer"
     >
       {/* Header */}
       <div className="flex justify-between items-center mb-5">
@@ -13,23 +48,23 @@ export default function PostCard({ post }) {
           
           {/* Avatar Circle */}
           <div className="w-11 h-11 rounded-full bg-[#D9D6FF] flex items-center justify-center font-bold text-black">
-            {post.author[0]}
+            {authorInitial}
           </div>
 
           {/* Name + Dept */}
           <div>
             <h3 className="font-semibold text-black text-sm">
-              {post.author}
+              {authorName}
             </h3>
             <p className="text-xs text-gray-500">
-              {post.dept} • {post.time}
+              {post.author?.department || "Team"} • {formatDate(post.createdAt)}
             </p>
           </div>
         </div>
 
         {/* Tag */}
         <span className="text-xs px-3 py-1 rounded-full bg-[#F1EDE6] text-gray-600">
-          {post.tag}
+          {tag}
         </span>
       </div>
 
@@ -40,24 +75,24 @@ export default function PostCard({ post }) {
 
       {/* Preview */}
       <p className="text-base text-gray-600 mb-4 leading-relaxed">
-        {post.preview}
+        {preview}
       </p>
 
       {/* AI Summary */}
       <p className="text-sm italic text-gray-700 bg-white/60 px-4 py-3 rounded-xl mb-5 border border-white/40">
-        ⚡ {post.summary}
+        ⚡ {summary}
       </p>
 
-      {/* Reactions */}
+      {/* Reactions - Placeholder */}
       <div className="flex gap-6 text-sm text-gray-600">
-        <button className="hover:text-black transition">
-          ❤️ {post.reactions.heart}
+        <button className="hover:text-black transition" onClick={(e) => e.stopPropagation()}>
+          ❤️ View
         </button>
-        <button className="hover:text-black transition">
-          💡 {post.reactions.idea}
+        <button className="hover:text-black transition" onClick={(e) => e.stopPropagation()}>
+          💡 Feedback
         </button>
-        <button className="hover:text-black transition">
-          💬 {post.reactions.comments} Comments
+        <button className="hover:text-black transition" onClick={(e) => e.stopPropagation()}>
+          💬 Discuss
         </button>
       </div>
     </div>

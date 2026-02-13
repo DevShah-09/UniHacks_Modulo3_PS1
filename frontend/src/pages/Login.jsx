@@ -42,7 +42,13 @@ export default function Login() {
     setCreatingOrg(true);
 
     try {
-      await createOrganization({ name: orgName, description: orgDescription });
+      const orgResponse = await createOrganization({ name: orgName, description: orgDescription });
+      
+      // Update localStorage with organization info
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      userInfo.organization = orgResponse._id;
+      localStorage.setItem('userInfo', JSON.stringify(userInfo));
+      
       navigate("/feed");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create organization.");

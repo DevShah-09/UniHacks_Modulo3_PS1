@@ -14,7 +14,7 @@ const PERSONAS = [
 
 export default function PostDetail() {
   const { postId } = useParams();
-  
+
   // State management
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
@@ -33,18 +33,17 @@ export default function PostDetail() {
         setError(null);
 
         // Get current user from localStorage
-        const token = localStorage.getItem('token');
-        const user = localStorage.getItem('user');
-        if (user) {
-          setCurrentUserId(JSON.parse(user).id);
+        const userInfo = localStorage.getItem('userInfo');
+        if (userInfo) {
+          setCurrentUserId(JSON.parse(userInfo)._id);
         }
 
         // Fetch post
-        const postResponse = await api.get(`/api/posts/${postId}`);
+        const postResponse = await api.get(`/posts/${postId}`);
         setPost(postResponse.data);
 
         // Fetch comments
-        const commentsResponse = await api.get(`/api/comments/${postId}`);
+        const commentsResponse = await api.get(`ments/${postId}`);
         setComments(commentsResponse.data || []);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load post details');
@@ -65,11 +64,11 @@ export default function PostDetail() {
 
     try {
       setCommentLoading(true);
-      const response = await api.post(`/api/comments`, {
+      const response = await api.post(`/comments`, {
         postId,
         content: newCommentText,
       });
-      
+
       setComments([...comments, response.data]);
       setNewCommentText('');
     } catch (err) {
@@ -83,8 +82,8 @@ export default function PostDetail() {
   // Handle deleting a comment
   const handleDeleteComment = async (commentId) => {
     try {
-      await api.delete(`/api/comments/${commentId}`);
-      setComments(comments.filter(c => c.id !== commentId));
+      await api.delete(`/ents/${commentId}`);
+      setComments(comments.filter(c => c._id !== commentId));
     } catch (err) {
       setError('Failed to delete comment');
       console.error('Error deleting comment:', err);
@@ -180,15 +179,15 @@ export default function PostDetail() {
                 <p className="text-gray-500 text-center py-8">No comments yet. Be the first!</p>
               ) : (
                 comments.map((comment) => (
-                  <div key={comment.id} className="bg-gray-50 p-4 rounded-xl">
+                  <div key={comment._id} className="bg-gray-50 p-4 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
-                        <span className="font-semibold">{comment.author?.name || 'Anonymous'}</span>
+                        <span className="font-semibold">{comment.author?.fullName || 'Anonymous'}</span>
                         <span className="text-gray-500 text-sm">{formatDate(comment.createdAt)}</span>
                       </div>
-                      {currentUserId === comment.author?.id && (
+                      {currentUserId === comment.author?._id && (
                         <button
-                          onClick={() => handleDeleteComment(comment.id)}
+                          onClick={() => handleDeleteComment(comment._id)}
                           className="text-red-500 hover:text-red-700 text-sm font-semibold"
                         >
                           Delete
@@ -233,11 +232,10 @@ export default function PostDetail() {
               <button
                 key={persona.key}
                 onClick={() => setSelectedPersona(persona.key)}
-                className={`w-full text-left p-3 rounded-xl font-semibold transition ${
-                  selectedPersona === persona.key
+                className={`w-full text-left p-3 rounded-xl font-semibold transition ${selectedPersona === persona.key
                     ? 'bg-purple-600 text-white shadow-lg'
                     : 'bg-white hover:bg-purple-100'
-                }`}
+                  }`}
               >
                 {persona.label}
               </button>
