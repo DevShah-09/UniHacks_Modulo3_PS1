@@ -92,6 +92,17 @@ const createPost = async (req, res) => {
     const savedPost = await post.save();
     const populatedPost = await Post.findById(savedPost._id).populate('author', 'fullName email department');
 
+    // Log activity
+    const { logActivity } = require('./activityController');
+    await logActivity(
+      req.user._id,
+      req.organization,
+      'post',
+      `${req.user.fullName} shared a new reflection: "${title}"`,
+      savedPost._id,
+      'Post'
+    );
+
     res.status(201).json(populatedPost);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -162,15 +173,17 @@ const getTrendingPosts = async (req, res) => {
     // recencyScore = 1 / (1 + ageHours/24)
     const pipeline = [
       { $match: { organization: orgId } },
-      { $project: {
+      {
+        $project: {
           title: 1,
           summary: 1,
           createdAt: 1,
-          upvoteCount: { $ifNull: [ '$upvoteCount', 0 ] },
-          downvoteCount: { $ifNull: [ '$downvoteCount', 0 ] }
+          upvoteCount: { $ifNull: ['$upvoteCount', 0] },
+          downvoteCount: { $ifNull: ['$downvoteCount', 0] }
         }
       },
-      { $lookup: {
+      {
+        $lookup: {
           from: 'comments',
           let: { postId: '$_id' },
           pipeline: [
@@ -178,24 +191,31 @@ const getTrendingPosts = async (req, res) => {
             { $count: 'count' }
           ],
           as: 'comments'
-      } },
-      { $addFields: { commentsCount: { $ifNull: [ { $arrayElemAt: [ '$comments.count', 0 ] }, 0 ] } } },
-      { $addFields: {
-          ageHours: { $divide: [ { $subtract: [ '$$NOW', '$createdAt' ] }, 1000 * 60 * 60 ] },
-          recencyScore: { $divide: [ 1, { $add: [1, { $divide: [ { $divide: [ { $subtract: [ '$$NOW', '$createdAt' ] }, 1000 * 60 * 60 ] }, 24 ] } ] } ] }
-      } },
-      { $addFields: {
-          votesScore: { $subtract: [ { $ifNull: [ '$upvoteCount', 0 ] }, { $ifNull: [ '$downvoteCount', 0 ] } ] }
-      } },
-      { $addFields: {
+        }
+      },
+      { $addFields: { commentsCount: { $ifNull: [{ $arrayElemAt: ['$comments.count', 0] }, 0] } } },
+      {
+        $addFields: {
+          ageHours: { $divide: [{ $subtract: ['$$NOW', '$createdAt'] }, 1000 * 60 * 60] },
+          recencyScore: { $divide: [1, { $add: [1, { $divide: [{ $divide: [{ $subtract: ['$$NOW', '$createdAt'] }, 1000 * 60 * 60] }, 24] }] }] }
+        }
+      },
+      {
+        $addFields: {
+          votesScore: { $subtract: [{ $ifNull: ['$upvoteCount', 0] }, { $ifNull: ['$downvoteCount', 0] }] }
+        }
+      },
+      {
+        $addFields: {
           score: {
             $add: [
-              { $multiply: [ '$votesScore', 1 ] },
-              { $multiply: [ '$commentsCount', 1.5 ] },
-              { $multiply: [ '$recencyScore', 2 ] }
+              { $multiply: ['$votesScore', 1] },
+              { $multiply: ['$commentsCount', 1.5] },
+              { $multiply: ['$recencyScore', 2] }
             ]
           }
-      } },
+        }
+      },
       { $sort: { score: -1, createdAt: -1 } },
       { $limit: limit },
       { $project: { title: 1, summary: 1, upvoteCount: 1, downvoteCount: 1, commentsCount: 1, createdAt: 1, score: 1, votesScore: 1 } }
@@ -564,6 +584,17 @@ const voteOnPost = async (req, res) => {
     const inc = voteType === 'upvote' ? { upvoteCount: 1 } : { downvoteCount: 1 };
     await Post.findByIdAndUpdate(postId, { $inc: inc });
     const updatedPost = await refreshScore();
+
+    // Log activity
+    const { logActivity } = require('./activityController');
+    await logActivity(
+      req.user._id,
+      req.organization,
+      'vote',
+      `${req.user.fullName} ${voteType}d a post: "${updatedPost.title}"`,
+      updatedPost._id,
+      'Post'
+    );
 
     return res.status(200).json({ userVote: voteType, upvoteCount: updatedPost.upvoteCount, downvoteCount: updatedPost.downvoteCount, score: updatedPost.score });
   } catch (error) {

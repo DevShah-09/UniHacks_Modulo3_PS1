@@ -169,32 +169,18 @@ export default function PostDetail() {
   /* Vote handlers (optimistic) */
   const handleUpvote = async () => {
     if (!post) return;
+    if (userVote) return; // Prevent multiple votes
+
     const prev = userVote;
     try {
       setVoteLoading(true);
-      if (prev === 'upvote') {
-        setUserVote(null);
-        setUpvoteCount((c) => c - 1);
-        const res = await voteOnPost(post._id, 'remove');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      } else if (prev === 'downvote') {
-        setUserVote('upvote');
-        setUpvoteCount((c) => c + 1);
-        setDownvoteCount((c) => c - 1);
-        const res = await voteOnPost(post._id, 'upvote');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      } else {
-        setUserVote('upvote');
-        setUpvoteCount((c) => c + 1);
-        const res = await voteOnPost(post._id, 'upvote');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      }
+      // new upvote
+      setUserVote('upvote');
+      setUpvoteCount((c) => c + 1);
+      const res = await voteOnPost(post._id, 'upvote');
+      setUserVote(res.userVote);
+      setUpvoteCount(res.upvoteCount);
+      setDownvoteCount(res.downvoteCount);
     } catch (err) {
       setUserVote(prev);
       setError('Failed to update vote');
@@ -206,32 +192,18 @@ export default function PostDetail() {
 
   const handleDownvote = async () => {
     if (!post) return;
+    if (userVote) return; // Prevent multiple votes
+
     const prev = userVote;
     try {
       setVoteLoading(true);
-      if (prev === 'downvote') {
-        setUserVote(null);
-        setDownvoteCount((c) => c - 1);
-        const res = await voteOnPost(post._id, 'remove');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      } else if (prev === 'upvote') {
-        setUserVote('downvote');
-        setDownvoteCount((c) => c + 1);
-        setUpvoteCount((c) => c - 1);
-        const res = await voteOnPost(post._id, 'downvote');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      } else {
-        setUserVote('downvote');
-        setDownvoteCount((c) => c + 1);
-        const res = await voteOnPost(post._id, 'downvote');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      }
+      // new downvote
+      setUserVote('downvote');
+      setDownvoteCount((c) => c + 1);
+      const res = await voteOnPost(post._id, 'downvote');
+      setUserVote(res.userVote);
+      setUpvoteCount(res.upvoteCount);
+      setDownvoteCount(res.downvoteCount);
     } catch (err) {
       setUserVote(prev);
       setError('Failed to update vote');
@@ -339,26 +311,26 @@ export default function PostDetail() {
               {/* Reactions */}
               <div className="flex gap-3 mt-6 pl-3">
                 <div className="flex gap-3">
-                <button
-                  onClick={handleUpvote}
-                  disabled={voteLoading}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${userVote === 'upvote' ? 'bg-[#4BA9FF] text-black' : 'bg-[#1C1D25] text-gray-300 hover:bg-[#2A2C38]'}`}
-                >
-                  ▲ Up {upvoteCount}
-                </button>
+                  <button
+                    onClick={handleUpvote}
+                    disabled={voteLoading || !!userVote}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${userVote === 'upvote' ? 'bg-[#4BA9FF] text-black' : userVote ? 'bg-[#1C1D25] text-gray-600 cursor-not-allowed' : 'bg-[#1C1D25] text-gray-300 hover:bg-[#2A2C38]'}`}
+                  >
+                    ▲ Up {upvoteCount}
+                  </button>
 
-                <button
-                  onClick={handleDownvote}
-                  disabled={voteLoading}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${userVote === 'downvote' ? 'bg-[#F28B82] text-black' : 'bg-[#1C1D25] text-gray-300 hover:bg-[#2A2C38]'}`}
-                >
-                  ▼ Down {downvoteCount}
-                </button>
+                  <button
+                    onClick={handleDownvote}
+                    disabled={voteLoading || !!userVote}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${userVote === 'downvote' ? 'bg-[#F28B82] text-black' : userVote ? 'bg-[#1C1D25] text-gray-600 cursor-not-allowed' : 'bg-[#1C1D25] text-gray-300 hover:bg-[#2A2C38]'}`}
+                  >
+                    ▼ Down {downvoteCount}
+                  </button>
 
-                <div className="px-4 py-2 rounded-lg bg-[#1C1D25] text-gray-300 text-sm">
-                  Score {upvoteCount - downvoteCount}
+                  <div className="px-4 py-2 rounded-lg bg-[#1C1D25] text-gray-300 text-sm">
+                    Score {upvoteCount - downvoteCount}
+                  </div>
                 </div>
-              </div>
 
                 <div className="px-4 py-2 rounded-lg bg-[#1C1D25] text-gray-300 text-sm">
                   Refinements {post.refineCount || 0}

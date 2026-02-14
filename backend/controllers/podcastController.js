@@ -42,6 +42,17 @@ const uploadPodcast = async (req, res) => {
     const populatedPodcast = await Podcast.findById(savedPodcast._id)
       .populate('author', 'fullName email department');
 
+    // Log activity
+    const { logActivity } = require('./activityController');
+    await logActivity(
+      req.user._id,
+      req.organization,
+      'podcast',
+      `${req.user.fullName} uploaded a new podcast: "${title}"`,
+      savedPodcast._id,
+      'Podcast'
+    );
+
     res.status(201).json(populatedPodcast);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -224,7 +235,7 @@ const transcribePodcast = async (req, res) => {
       const text = podcast.transcription.text;
       const isError = text.startsWith('[Transcription unavailable') || text.startsWith('[Transcription error') || text.startsWith('[Audio file not found]');
 
-      if (!isError && !req.query.force) {
+      if (!isError && !req.query.force && podcast.summary) {
         return res.status(200).json({
           message: 'Podcast already transcribed',
           transcription: podcast.transcription

@@ -170,7 +170,7 @@ export default function Write() {
   return (
     <>
 
-      <div className="h-[calc(100vh-90px)] bg-[#1C1D25] text-white px-6 py-6 overflow-hidden">
+      <div className="h-[calc(100vh-90px)] bg-[#1C1D25] text-white px-6 py-6 overflow-y-auto">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* LEFT EDITOR */}
@@ -314,11 +314,11 @@ export default function Write() {
             <div
               className="bg-[#2A2C38] rounded-2xl p-6 border shadow-md"
               style={{
-                borderColor: 
+                borderColor:
                   harshScore.intensity === "harsh" ? "#F28B82" :
-                  harshScore.intensity === "moderate" ? "#F5C76A" :
-                  harshScore.intensity === "caution" ? "#FFD166" :
-                  "#7FE6C5"
+                    harshScore.intensity === "moderate" ? "#F5C76A" :
+                      harshScore.intensity === "caution" ? "#FFD166" :
+                        "#7FE6C5"
               }}
             >
               <h2 className="text-lg font-semibold mb-4">Content Safety Check</h2>
@@ -327,14 +327,14 @@ export default function Write() {
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm text-gray-400">Harshness Score</span>
-                  <span 
+                  <span
                     className="text-lg font-bold"
                     style={{
                       color:
                         harshScore.intensity === "harsh" ? "#F28B82" :
-                        harshScore.intensity === "moderate" ? "#F5C76A" :
-                        harshScore.intensity === "caution" ? "#FFD166" :
-                        "#7FE6C5"
+                          harshScore.intensity === "moderate" ? "#F5C76A" :
+                            harshScore.intensity === "caution" ? "#FFD166" :
+                              "#7FE6C5"
                     }}
                   >
                     {(harshScore.score * 100).toFixed(0)}%
@@ -349,9 +349,9 @@ export default function Write() {
                       width: `${harshScore.score * 100}%`,
                       backgroundColor:
                         harshScore.intensity === "harsh" ? "#F28B82" :
-                        harshScore.intensity === "moderate" ? "#F5C76A" :
-                        harshScore.intensity === "caution" ? "#FFD166" :
-                        "#7FE6C5"
+                          harshScore.intensity === "moderate" ? "#F5C76A" :
+                            harshScore.intensity === "caution" ? "#FFD166" :
+                              "#7FE6C5"
                     }}
                   />
                 </div>
@@ -363,20 +363,20 @@ export default function Write() {
                   style={{
                     backgroundColor:
                       harshScore.intensity === "harsh" ? "rgba(242, 139, 130, 0.2)" :
-                      harshScore.intensity === "moderate" ? "rgba(245, 199, 106, 0.2)" :
-                      harshScore.intensity === "caution" ? "rgba(255, 209, 102, 0.2)" :
-                      "rgba(127, 230, 197, 0.2)",
+                        harshScore.intensity === "moderate" ? "rgba(245, 199, 106, 0.2)" :
+                          harshScore.intensity === "caution" ? "rgba(255, 209, 102, 0.2)" :
+                            "rgba(127, 230, 197, 0.2)",
                     color:
                       harshScore.intensity === "harsh" ? "#F28B82" :
-                      harshScore.intensity === "moderate" ? "#F5C76A" :
-                      harshScore.intensity === "caution" ? "#FFD166" :
-                      "#7FE6C5"
+                        harshScore.intensity === "moderate" ? "#F5C76A" :
+                          harshScore.intensity === "caution" ? "#FFD166" :
+                            "#7FE6C5"
                   }}
                 >
                   {harshScore.intensity === "safe" ? "✅ Safe" :
-                   harshScore.intensity === "caution" ? "⚠️ Caution" :
-                   harshScore.intensity === "moderate" ? "🔔 Moderate" :
-                   "⛔ Harsh"}
+                    harshScore.intensity === "caution" ? "⚠️ Caution" :
+                      harshScore.intensity === "moderate" ? "🔔 Moderate" :
+                        "⛔ Harsh"}
                 </span>
               </div>
 
@@ -386,7 +386,7 @@ export default function Write() {
                   <p className="text-xs text-gray-400 mb-2">Harsh words detected:</p>
                   <div className="flex flex-wrap gap-2">
                     {harshScore.words.map((w, idx) => (
-                      <span 
+                      <span
                         key={idx}
                         className="px-2 py-1 text-xs rounded bg-white/10 text-gray-200"
                       >
@@ -476,15 +476,27 @@ export default function Write() {
                 p-6 min-h-[170px] text-gray-300 overflow-y-auto"
               >
                 {feedbackLoading ? (
-                  <p className="text-gray-400 italic">
-                    Generating feedback...
-                  </p>
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2">
+                    <span className="animate-pulse">✨ Analyzing your thoughts...</span>
+                  </div>
                 ) : liveAiFeedback[selectedPersona] ? (
-                  liveAiFeedback[selectedPersona]
-                ) : (
-                  <p className="italic text-gray-500">
-                    Write 50+ characters to see AI feedback...
+                  <p className="leading-relaxed">
+                    {liveAiFeedback[selectedPersona]}
                   </p>
+                ) : content.length > 50 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500 italic">
+                    <p>No specific feedback generated for this persona yet.</p>
+                    <button
+                      onClick={() => generateLiveFeedback(content)}
+                      className="text-[#7FE6C5] hover:underline mt-2 text-sm not-italic"
+                    >
+                      Try Regenerating
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-600 italic">
+                    <p>Write at least 50 characters to see AI feedback...</p>
+                  </div>
                 )}
               </div>
 

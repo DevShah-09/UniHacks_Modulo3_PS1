@@ -33,35 +33,18 @@ export default function PostCard({ post }) {
   // Vote handlers (optimistic UI)
   const handleUpvote = async (e) => {
     e.stopPropagation();
+    if (userVote) return; // Prevent multiple votes/toggling
+
     const prevVote = userVote;
 
     try {
-      if (prevVote === 'upvote') {
-        // remove
-        setUserVote(null);
-        setUpvoteCount((c) => c - 1);
-        const res = await voteOnPost(post._id, 'remove');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      } else if (prevVote === 'downvote') {
-        // switch down -> up
-        setUserVote('upvote');
-        setUpvoteCount((c) => c + 1);
-        setDownvoteCount((c) => c - 1);
-        const res = await voteOnPost(post._id, 'upvote');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      } else {
-        // new upvote
-        setUserVote('upvote');
-        setUpvoteCount((c) => c + 1);
-        const res = await voteOnPost(post._id, 'upvote');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      }
+      // new upvote
+      setUserVote('upvote');
+      setUpvoteCount((c) => c + 1);
+      const res = await voteOnPost(post._id, 'upvote');
+      setUserVote(res.userVote);
+      setUpvoteCount(res.upvoteCount);
+      setDownvoteCount(res.downvoteCount);
     } catch (err) {
       // revert optimistic change on error
       setUserVote(prevVote);
@@ -73,35 +56,18 @@ export default function PostCard({ post }) {
 
   const handleDownvote = async (e) => {
     e.stopPropagation();
+    if (userVote) return; // Prevent multiple votes/toggling
+
     const prevVote = userVote;
 
     try {
-      if (prevVote === 'downvote') {
-        // remove
-        setUserVote(null);
-        setDownvoteCount((c) => c - 1);
-        const res = await voteOnPost(post._id, 'remove');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      } else if (prevVote === 'upvote') {
-        // switch up -> down
-        setUserVote('downvote');
-        setDownvoteCount((c) => c + 1);
-        setUpvoteCount((c) => c - 1);
-        const res = await voteOnPost(post._id, 'downvote');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      } else {
-        // new downvote
-        setUserVote('downvote');
-        setDownvoteCount((c) => c + 1);
-        const res = await voteOnPost(post._id, 'downvote');
-        setUserVote(res.userVote);
-        setUpvoteCount(res.upvoteCount);
-        setDownvoteCount(res.downvoteCount);
-      }
+      // new downvote
+      setUserVote('downvote');
+      setDownvoteCount((c) => c + 1);
+      const res = await voteOnPost(post._id, 'downvote');
+      setUserVote(res.userVote);
+      setUpvoteCount(res.upvoteCount);
+      setDownvoteCount(res.downvoteCount);
     } catch (err) {
       // revert optimistic change on error
       setUserVote(prevVote);
@@ -195,7 +161,8 @@ export default function PostCard({ post }) {
         <div className="flex items-center gap-4">
           <button
             onClick={handleUpvote}
-            className={`flex items-center gap-2 text-sm font-medium transition ${userVote === 'upvote' ? 'text-[#4BA9FF]' : 'text-gray-400 hover:text-white'}`}
+            disabled={!!userVote}
+            className={`flex items-center gap-2 text-sm font-medium transition ${userVote === 'upvote' ? 'text-[#4BA9FF] opacity-100' : userVote ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
           >
             {/* Up arrow (swapped) */}
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={userVote === 'upvote' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
@@ -206,7 +173,8 @@ export default function PostCard({ post }) {
 
           <button
             onClick={handleDownvote}
-            className={`flex items-center gap-2 text-sm font-medium transition ${userVote === 'downvote' ? 'text-[#F28B82]' : 'text-gray-400 hover:text-white'}`}
+            disabled={!!userVote}
+            className={`flex items-center gap-2 text-sm font-medium transition ${userVote === 'downvote' ? 'text-[#F28B82] opacity-100' : userVote ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
           >
             {/* Down arrow (swapped) */}
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={userVote === 'downvote' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">

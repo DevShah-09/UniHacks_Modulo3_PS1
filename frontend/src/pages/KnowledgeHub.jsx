@@ -188,17 +188,17 @@ export default function KnowledgeHub() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearchNow(); } }}
                   onFocus={() => triggerScreenGlow()}
-                  className="search-input w-full px-5 pr-12 py-3 bg-[#242631] border-2 border-white/20 rounded-xl text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4BA9FF] focus:border-[#4BA9FF]"
+                  className="search-input w-full px-5 pr-14 py-3 bg-[#242631] border-2 border-white/20 rounded-xl text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4BA9FF] focus:border-[#4BA9FF]"
                 />
 
                 <button
                   type="button"
                   aria-label="Search"
                   onClick={doSearchNow}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white focus:outline-none transition"
+                  className="absolute right-2 top-[48%] transform -translate-y-1/2 text-gray-400 hover:text-white focus:outline-none transition flex items-center justify-center bg-[#4BA9FF] w-9 h-9 rounded-lg text-black hover:bg-[#3A99EF]"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M12.9 14.32a8 8 0 111.414-1.414l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387zM8 14a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                   </svg>
                 </button>
               </div>

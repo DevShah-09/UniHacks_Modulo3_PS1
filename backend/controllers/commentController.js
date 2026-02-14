@@ -34,6 +34,17 @@ const createComment = async (req, res) => {
     const populatedComment = await Comment.findById(savedComment._id)
       .populate('author', 'fullName department email');
 
+    // Log activity
+    const { logActivity } = require('./activityController');
+    await logActivity(
+      req.user._id,
+      req.organization,
+      'comment',
+      `${req.user.fullName} commented on a post`,
+      savedComment._id,
+      'Comment'
+    );
+
     res.status(201).json(populatedComment);
   } catch (error) {
     res.status(500).json({ message: error.message });

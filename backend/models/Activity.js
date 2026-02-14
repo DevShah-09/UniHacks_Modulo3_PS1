@@ -13,7 +13,7 @@ const activitySchema = mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['post', 'comment', 'reflection', 'podcast', 'like', 'ai_feedback', 'join'],
+    enum: ['post', 'comment', 'reflection', 'podcast', 'like', 'vote', 'ai_feedback', 'join'],
     required: true
   },
   text: {

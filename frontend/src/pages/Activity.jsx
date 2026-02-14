@@ -32,6 +32,7 @@ export default function Activity() {
       case 'post': return '#4BA9FF'; // Blue
       case 'comment': return '#B9A6FF'; // Purple
       case 'podcast': return '#7FE6C5'; // Green
+      case 'vote': return '#FFD166'; // Orange/Yellow - distinct from others
       case 'ai_feedback': return '#F28B82'; // Red/Pink
       default: return '#F5C76A'; // Yellow
     }

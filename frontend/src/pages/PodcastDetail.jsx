@@ -24,8 +24,7 @@ export default function PodcastDetail() {
 
         if (
           response.data &&
-          (!response.data.summary || isTranscriptionError) &&
-          !response.data.transcription?.isTranscribed
+          ((!response.data.summary) || isTranscriptionError)
         ) {
           triggerTranscription(id);
         } else if (isTranscriptionError) {
