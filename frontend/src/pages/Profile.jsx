@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getUserProfile, getUserPosts, getUserPodcasts } from "../api/axios";
+import { getUserProfile, getUserPosts } from "../api/axios";
+import api from "../api/axios";
 import PostCard from "../components/layout/PostCard";
 import PodcastCard from "../components/layout/PodcastCard";
 
@@ -8,10 +9,12 @@ export default function Profile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("posts"); // 'posts' | 'podcasts' | 'comments' | 'reactions'
+  const [selectedStat, setSelectedStat] = useState(null); // For dropdown panel: 'posts' | 'podcasts' | 'comments' | 'reactions' | null
+  const [isExpanded, setIsExpanded] = useState(false); // For dropdown expansion
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
-  const [userPodcasts, setUserPodcasts] = useState([]);
+  const [podcasts, setPodcasts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [podcastsLoading, setPodcastsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -72,13 +75,14 @@ export default function Profile() {
   };
 
   const fetchPodcasts = async () => {
-    if (userPodcasts.length > 0) return; // avoid refetch
+    if (podcasts.length > 0) return; // avoid refetch
     setPodcastsLoading(true);
     try {
-      const podcasts = await getUserPodcasts(id);
-      setUserPodcasts(podcasts);
+      const res = await api.get(`/podcasts/user/${id}`);
+      setPodcasts(res.data);
     } catch (err) {
       console.error("Failed to fetch user podcasts", err);
+      setPodcasts([]);
     } finally {
       setPodcastsLoading(false);
     }
@@ -96,7 +100,14 @@ export default function Profile() {
     } else if (activeTab === 'podcasts') {
       fetchPodcasts();
     }
-  }, [id, activeTab]);
+  }, [activeTab]);
+
+  // Fetch data when dropdown stat is selected
+  useEffect(() => {
+    if (selectedStat === 'podcasts') {
+      fetchPodcasts();
+    }
+  }, [selectedStat]);
 
   const retry = () => {
     fetchProfile();
@@ -166,34 +177,71 @@ export default function Profile() {
               <Stat
                 label="Posts"
                 value={stats.postsCount}
-                isActive={activeTab === 'posts'}
-                onClick={() => setActiveTab('posts')}
+                isActive={selectedStat === 'posts'}
+                onClick={() => {
+                  if (selectedStat === 'posts') {
+                    setIsExpanded(!isExpanded);
+                  } else {
+                    setSelectedStat('posts');
+                    setIsExpanded(true);
+                  }
+                }}
               />
               <Stat
                 label="Podcasts"
                 value={stats.podcastsCount}
-                isActive={activeTab === 'podcasts'}
-                onClick={() => setActiveTab('podcasts')}
+                isActive={selectedStat === 'podcasts'}
+                onClick={() => {
+                  if (selectedStat === 'podcasts') {
+                    setIsExpanded(!isExpanded);
+                  } else {
+                    setSelectedStat('podcasts');
+                    setIsExpanded(true);
+                  }
+                }}
               />
-
-              {/* Message action - inserted as a grid item or between stats */}
-
-
               <Stat
                 label="Comments"
                 value={stats.commentsCount}
-                isActive={activeTab === 'comments'}
-                onClick={() => setActiveTab('comments')}
+                isActive={selectedStat === 'comments'}
+                onClick={() => {
+                  if (selectedStat === 'comments') {
+                    setIsExpanded(!isExpanded);
+                  } else {
+                    setSelectedStat('comments');
+                    setIsExpanded(true);
+                  }
+                }}
               />
               <Stat
                 label="Reactions"
                 value={stats.reactionsCount}
-                isActive={activeTab === 'reactions'}
-                onClick={() => setActiveTab('reactions')}
+                isActive={selectedStat === 'reactions'}
+                onClick={() => {
+                  if (selectedStat === 'reactions') {
+                    setIsExpanded(!isExpanded);
+                  } else {
+                    setSelectedStat('reactions');
+                    setIsExpanded(true);
+                  }
+                }}
               />
             </div>
           </div>
         </div>
+
+        {/* STATS FILTER DROPDOWN PANEL - Standalone Section Below Profile Card */}
+        {selectedStat && (
+          <StatsFilterDropdown
+            selectedStat={selectedStat}
+            setSelectedStat={setSelectedStat}
+            isExpanded={isExpanded}
+            setIsExpanded={setIsExpanded}
+            stats={stats}
+            userPosts={userPosts}
+            podcasts={podcasts}
+          />
+        )}
 
         {/* CONTENT AREA */}
         <div className="bg-[#242631] rounded-2xl border border-white/5 shadow-md p-6 min-h-[300px]">
@@ -229,9 +277,9 @@ export default function Profile() {
 
               {podcastsLoading ? (
                 <div className="text-center py-10 text-gray-400 animate-pulse">Loading podcasts...</div>
-              ) : userPodcasts.length > 0 ? (
+              ) : podcasts.length > 0 ? (
                 <div className="space-y-4">
-                  {userPodcasts.map(podcast => (
+                  {podcasts.map(podcast => (
                     <PodcastCard key={podcast._id} podcast={podcast} />
                   ))}
                 </div>
@@ -302,6 +350,149 @@ export default function Profile() {
           <h2 className="text-lg font-semibold mb-4 pl-3">AI Personality Insight</h2>
 
           <p className="text-gray-300 text-sm leading-relaxed pl-3">{aiPersonalitySummary || 'No AI personality summary available.'}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ✅ STATS FILTER DROPDOWN PANEL - Appears Below Profile Card */
+function StatsFilterDropdown({ selectedStat, setSelectedStat, isExpanded, setIsExpanded, stats, userPosts, podcasts }) {
+  const navigate = useNavigate();
+
+  // Dynamic data map - maps stat key to actual data
+  const dataMap = {
+    posts: userPosts || [],
+    podcasts: podcasts || [],
+    comments: [],
+    reactions: []
+  };
+
+  const statConfigs = [
+    {
+      key: 'posts',
+      label: 'Posts',
+      value: stats.postsCount,
+      icon: '📝'
+    },
+    {
+      key: 'podcasts',
+      label: 'Podcasts',
+      value: stats.podcastsCount,
+      icon: '🎙️'
+    },
+    {
+      key: 'comments',
+      label: 'Comments',
+      value: stats.commentsCount,
+      icon: '💬'
+    },
+    {
+      key: 'reactions',
+      label: 'Reactions',
+      value: stats.reactionsCount,
+      icon: '👍'
+    }
+  ];
+
+  const currentConfig = statConfigs.find(c => c.key === selectedStat);
+  const currentItems = dataMap[selectedStat] || [];
+
+  const getItemLabel = (item) => {
+    if (!item) return '';
+    if (selectedStat === 'posts' || selectedStat === 'podcasts') {
+      return item.title || 'Untitled';
+    }
+    return item;
+  };
+
+  return (
+    <div className="relative bg-[#242631] rounded-2xl border border-white/5 shadow-md overflow-hidden transition-all duration-300">
+      <div className="absolute left-0 top-0 h-full w-[6px] bg-gradient-to-b from-[#4BA9FF] to-[#7FE6C5] rounded-l-2xl" />
+
+      {/* Panel Header - Always Visible */}
+      <div className="flex items-center justify-between p-6 pl-4">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{currentConfig?.icon}</span>
+          <h3 className="text-xl font-semibold text-white">{currentConfig?.label}</h3>
+          <span className="ml-2 px-3 py-1 text-sm rounded-full bg-[#1C1D25] border border-white/10 text-gray-300">
+            {currentConfig?.value} total
+          </span>
+        </div>
+
+        {/* Dropdown Arrow Button - Points DOWN when collapsed, UP when expanded */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="p-2 rounded-lg bg-[#1C1D25] hover:bg-[#2A2E3E] text-gray-400 hover:text-white transition-all duration-200"
+        >
+          {isExpanded ? (
+            // ChevronUp - pointing UP
+            <svg
+              className="w-5 h-5 transition-transform duration-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          ) : (
+            // ChevronDown - pointing DOWN
+            <svg
+              className="w-5 h-5 transition-transform duration-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* Expandable Content */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          }`}
+      >
+        <div className="border-t border-white/5 p-6 space-y-3">
+          {currentItems && currentItems.length > 0 ? (
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {currentItems.map((item, idx) => (
+                <div
+                  key={item._id || idx}
+                  onClick={() => {
+                    // Navigate to the detail page based on selected stat
+                    if (selectedStat === 'posts') {
+                      navigate(`/posts/${item._id}`);
+                    } else if (selectedStat === 'podcasts') {
+                      navigate(`/podcasts/${item._id}`);
+                    }
+                  }}
+                  className="group bg-[#1C1D25] border border-white/5 rounded-lg p-4 hover:border-[#4BA9FF]/30 hover:bg-[#2A2E3E] transition-all duration-200 cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium text-sm group-hover:text-[#4BA9FF] transition-colors line-clamp-2">
+                        {getItemLabel(item)}
+                      </p>
+                      <p className="text-gray-500 text-xs mt-2">
+                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Date unavailable'}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-gray-500 group-hover:text-[#4BA9FF] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-400">
+              <p className="text-sm">No {currentConfig?.label?.toLowerCase()} to display</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

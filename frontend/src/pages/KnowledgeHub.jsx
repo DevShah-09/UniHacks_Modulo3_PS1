@@ -42,7 +42,7 @@ export default function KnowledgeHub() {
     }
   };
 
-  useEffect(() => () => {}, []);
+  useEffect(() => () => { }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -104,166 +104,167 @@ export default function KnowledgeHub() {
       <div className="w-full flex justify-center">
         <div className="w-[90%] grid grid-cols-1 lg:grid-cols-12 gap-10 px-6 py-8">
 
-        {/* LEFT SIDEBAR (3 cols) */}
-        <div className="lg:col-span-3 space-y-6 h-fit sticky top-24">
-          <div className="relative bg-[#242631] rounded-2xl p-5 border border-white/10 shadow-md overflow-hidden">
-            <div className="absolute left-0 top-0 h-full w-[6px] bg-[#F5C76A]" />
+          {/* LEFT SIDEBAR (3 cols) */}
+          <div className="lg:col-span-3 space-y-6 h-fit sticky top-24">
+            <div className="relative bg-[#242631] rounded-2xl p-5 border border-white/10 shadow-md overflow-hidden">
+              <div className="absolute left-0 top-0 h-full w-[6px] bg-[#F5C76A]" />
 
-            <h3 className="text-lg font-bold mb-4 pl-3">
-              Content Type
-            </h3>
+              <h3 className="text-lg font-bold mb-4 pl-3">
+                Content Type
+              </h3>
 
-            <div className="space-y-2 pl-3">
-              {contentTypes.map((type, index) => {
-                const pastel =
-                  ["#4BA9FF", "#B9A6FF", "#F28B82", "#7FE6C5"][
-                  index % 4
-                  ];
+              <div className="space-y-2 pl-3">
+                {contentTypes.map((type, index) => {
+                  const pastel =
+                    ["#4BA9FF", "#B9A6FF", "#F28B82", "#7FE6C5"][
+                    index % 4
+                    ];
 
-                const active = contentType === type.value;
+                  const active = contentType === type.value;
 
-                return (
-                  <button
-                    key={type.value}
-                    onClick={() => setContentType(type.value)}
-                    className="w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition"
-                    style={{
-                      backgroundColor: active ? pastel : "#1C1D25",
-                      color: active ? "black" : "white",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    {type.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div className="bg-[#242631] rounded-2xl p-5 border border-white/10 shadow-md">
-            <h3 className="text-lg font-semibold mb-4">Trending</h3>
-
-            {trendingLoading ? (
-              <div className="text-sm text-gray-400">Loading...</div>
-            ) : trendingError ? (
-              <div className="text-sm text-red-400">{trendingError}</div>
-            ) : trending.length === 0 ? (
-              <div className="text-sm text-gray-400">No trending posts</div>
-            ) : (
-              <ol className="space-y-3">
-                {trending.map((t, idx) => (
-                  <li
-                    key={t._id}
-                    onClick={() => navigate(`/posts/${t._id}`)}
-                    className="flex gap-3 items-start cursor-pointer hover:bg-[#2A2C38] p-2 rounded"
-                  >
-                    <div className="w-6 text-sm font-semibold text-gray-400">{idx + 1}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-white truncate">{t.title}</div>
-                      <div className="text-xs text-gray-400 truncate">{t.summary || ''}</div>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-        </div>
-
-        {/* CENTER CONTENT (9 cols) */}
-        <div className="lg:col-span-9 space-y-6">
-          <div>
-            <h1 className="text-4xl font-bold">
-              Knowledge Hub
-            </h1>
-            <p className="text-gray-400 mt-2">
-              Search reflections, podcasts, and internal learnings across your org.
-            </p>
-          </div>
-
-          <div className="flex gap-4 items-stretch">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Search insights..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearchNow(); } }}
-                className="search-input w-full px-5 pr-12 py-3 bg-[#242631] border-2 border-white/20 rounded-xl text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4BA9FF] focus:border-[#4BA9FF]"
-              />
-
-              <button
-                type="button"
-                aria-label="Search"
-                onClick={doSearchNow}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white focus:outline-none transition"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M12.9 14.32a8 8 0 111.414-1.414l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387zM8 14a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="relative min-w-[140px]">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-4 py-3 bg-[#242631] border-2 border-white/20 rounded-xl text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4BA9FF] focus:border-[#4BA9FF] appearance-none cursor-pointer"
-              >
-                <option value="latest">Latest</option>
-                <option value="oldest">Oldest</option>
-                <option value="upvotes">Most Liked</option>
-              </select>
-              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
+                  return (
+                    <button
+                      key={type.value}
+                      onClick={() => setContentType(type.value)}
+                      className="w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition"
+                      style={{
+                        backgroundColor: active ? pastel : "#1C1D25",
+                        color: active ? "black" : "white",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      {type.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+            <div className="bg-[#242631] rounded-2xl p-5 border border-white/10 shadow-md">
+              <h3 className="text-lg font-semibold mb-4">Trending</h3>
+
+              {trendingLoading ? (
+                <div className="text-sm text-gray-400">Loading...</div>
+              ) : trendingError ? (
+                <div className="text-sm text-red-400">{trendingError}</div>
+              ) : trending.length === 0 ? (
+                <div className="text-sm text-gray-400">No trending posts</div>
+              ) : (
+                <ol className="space-y-3">
+                  {trending.map((t, idx) => (
+                    <li
+                      key={t._id}
+                      onClick={() => navigate(`/posts/${t._id}`)}
+                      className="flex gap-3 items-start cursor-pointer hover:bg-[#2A2C38] p-2 rounded"
+                    >
+                      <div className="w-6 text-sm font-semibold text-gray-400">{idx + 1}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-white truncate">{t.title}</div>
+                        <div className="text-xs text-gray-400 truncate">{t.summary || ''}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
           </div>
 
-          {!loading && results.length > 0 && (
-            <p className="text-gray-400 text-sm">
-              Showing{" "}
-              <span className="text-white font-semibold">
-                {results.length}
-              </span>{" "}
-              results
-            </p>
-          )}
-
-          {loading && (
-            <div className="text-center py-12">
-              <p className="text-gray-400 italic">
-                Searching knowledge vault...
+          {/* CENTER CONTENT (9 cols) */}
+          <div className="lg:col-span-9 space-y-6">
+            <div>
+              <h1 className="text-4xl font-bold">
+                Knowledge Hub
+              </h1>
+              <p className="text-gray-400 mt-2">
+                Search reflections, podcasts, and internal learnings across your org.
               </p>
             </div>
-          )}
 
-          {error && (
-            <div className="bg-[#F28B82]/20 border border-[#F28B82] text-[#F28B82] px-4 py-3 rounded-xl">
-              {error}
+            <div className="flex gap-4 items-stretch">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="Search insights..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearchNow(); } }}
+                  onFocus={() => triggerScreenGlow()}
+                  className="search-input w-full px-5 pr-12 py-3 bg-[#242631] border-2 border-white/20 rounded-xl text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4BA9FF] focus:border-[#4BA9FF]"
+                />
+
+                <button
+                  type="button"
+                  aria-label="Search"
+                  onClick={doSearchNow}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white focus:outline-none transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M12.9 14.32a8 8 0 111.414-1.414l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387zM8 14a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="relative min-w-[140px]">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#242631] border-2 border-white/20 rounded-xl text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4BA9FF] focus:border-[#4BA9FF] appearance-none cursor-pointer"
+                >
+                  <option value="latest">Latest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="upvotes">Most Liked</option>
+                </select>
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
-          )}
 
-          {!loading && results.length === 0 && !error && (
-            <div className="bg-[#242631] border border-white/10 rounded-2xl p-10 text-center">
-              <p className="text-gray-400 italic">
-                No results found. Try adjusting filters
+            {!loading && results.length > 0 && (
+              <p className="text-gray-400 text-sm">
+                Showing{" "}
+                <span className="text-white font-semibold">
+                  {results.length}
+                </span>{" "}
+                results
               </p>
-            </div>
-          )}
+            )}
 
-          {!loading && results.length > 0 && (
-            <div className="space-y-5">
-              {results.map((post) => (
-                <PostCard key={post._id || post.id} post={post} />
-              ))}
-            </div>
-          )}
+            {loading && (
+              <div className="text-center py-12">
+                <p className="text-gray-400 italic">
+                  Searching knowledge vault...
+                </p>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-[#F28B82]/20 border border-[#F28B82] text-[#F28B82] px-4 py-3 rounded-xl">
+                {error}
+              </div>
+            )}
+
+            {!loading && results.length === 0 && !error && (
+              <div className="bg-[#242631] border border-white/10 rounded-2xl p-10 text-center">
+                <p className="text-gray-400 italic">
+                  No results found. Try adjusting filters
+                </p>
+              </div>
+            )}
+
+            {!loading && results.length > 0 && (
+              <div className="space-y-5">
+                {results.map((post) => (
+                  <PostCard key={post._id || post.id} post={post} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT SIDEBAR removed - trending moved into left column */}
         </div>
-
-        {/* RIGHT SIDEBAR removed - trending moved into left column */}
       </div>
     </div>
-  </div>
   );
 }

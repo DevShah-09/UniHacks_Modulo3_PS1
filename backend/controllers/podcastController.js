@@ -294,6 +294,26 @@ const getUserPodcasts = async (req, res) => {
   }
 };
 
+// @desc    Get current user's podcasts
+// @route   GET /api/podcasts/my
+// @access  Private
+const getMyPodcasts = async (req, res) => {
+  try {
+    const query = {
+      author: req.user._id,
+      organization: req.organization
+    };
+
+    const podcasts = await Podcast.find(query)
+      .populate('author', 'fullName email department')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(podcasts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   uploadPodcast,
   getPodcasts,
@@ -302,5 +322,6 @@ module.exports = {
   deletePodcast,
   searchPodcasts,
   transcribePodcast,
-  getUserPodcasts
+  getUserPodcasts,
+  getMyPodcasts
 };

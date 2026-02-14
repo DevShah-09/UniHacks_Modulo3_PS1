@@ -10,6 +10,7 @@ import UploadPodcast from "./pages/UploadPodcast";
 import PodcastDetail from "./pages/PodcastDetail";
 import KnowledgeHub from "./pages/KnowledgeHub";
 import Activity from "./pages/Activity";
+import Meet from "./pages/Meet";
 import Profile from "./pages/Profile";
 import DirectMessage from "./pages/DirectMessage";
 import Messages from "./pages/Messages";
@@ -118,6 +119,16 @@ export default function App() {
             <>
               <Navbar />
               <Activity />
+            </>
+          }
+        />
+
+        <Route
+          path="/meet"
+          element={
+            <>
+              <Navbar />
+              <Meet />
             </>
           }
         />

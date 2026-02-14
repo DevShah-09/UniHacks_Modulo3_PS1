@@ -2,7 +2,7 @@
 // Use `triggerScreenGlow()` from pages/components to play the ambient glow.
 let glowTimeout = null;
 
-export function triggerScreenGlow(duration = 1250) {
+export function triggerScreenGlow(duration = 2000) {
   try {
     if (typeof window === "undefined") return;
 

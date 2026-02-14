@@ -8,77 +8,74 @@ body {
 }
 
 /*
-  Global full-screen ambient screen glow overlay
-  - Trigger by adding `screen-glow-active` to `#screen-glow-overlay`
-  - Pointer-events: none so it never blocks interaction
-  - Uses a conic gradient blurred and masked to only show the border
-  - Animation runs ~1.25s and respects prefers-reduced-motion
+  Global full-screen ambient edge glow (iOS Lock Screen Style)
+  - Soft diffused color bleed from edges
+  - No hard border
 */
 #screen-glow-overlay {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  will-change: opacity, transform;
-}
-
-#screen-glow-overlay::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-
-  /* bright flowing pastel spectrum border (blue -> purple -> pink) */
-  background: conic-gradient(from 220deg at 50% 50%,
-    rgba(75, 169, 255, 0.70),
-    rgba(123, 97, 255, 0.65),
-    rgba(185, 166, 255, 0.60),
-    rgba(242, 139, 130, 0.55),
-    rgba(75, 169, 255, 0.70)
-  );
-  background-size: 180% 180%;
-
-  /* blur for soft edge glow */
-  filter: blur(28px) saturate(1.12);
-
-  /* mask to show only border area - mask the center heavily */
-  -webkit-mask-image: radial-gradient(circle at center, transparent 28%, black 36%);
-  mask-image: radial-gradient(circle at center, transparent 28%, black 36%);
-
-  mix-blend-mode: screen;
   opacity: 0;
-  transform: translateZ(0);
+  will-change: opacity, transform;
+
+  /* Conic gradient for colorful edge bleed */
+  background: conic-gradient(from 180deg at 50% 50%,
+      #FF2E93 0deg,
+      /* Pink */
+      #00F0FF 120deg,
+      /* Cyan/Blue */
+      #8A2BE2 240deg,
+      /* Purple */
+      #FF2E93 360deg
+      /* Pink Loop */
+    );
+
+  /* Heavy blur for soft atmospheric effect */
+  filter: blur(100px) saturate(1.5);
+
+  /* Mask center to keep it clear, show only edges */
+  -webkit-mask-image: radial-gradient(ellipse at center, transparent 40%, black 100%);
+  mask-image: radial-gradient(ellipse at center, transparent 40%, black 100%);
+
+  transform: scale(1.1);
+  /* Slight scale to push colors to edges */
+  transition: opacity 1.5s ease-out;
+  /* Smooth fade out by default */
 }
 
-/* Active class: animate border glow */
-.screen-glow-active::before {
-  animation: screenGlowFlow 1.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+/* Active state: Fade in and gently pulse */
+.screen-glow-active {
+  animation: ambientGlowFade 2s ease-out forwards;
 }
 
-@keyframes screenGlowFlow {
+@keyframes ambientGlowFade {
   0% {
     opacity: 0;
-    transform: translateZ(0) scale(0.98);
-    background-position: 0% 50%;
+    transform: scale(1.05);
   }
-  8% {
-    opacity: 1;
-    transform: translateZ(0) scale(1);
-    background-position: 15% 50%;
+
+  20% {
+    opacity: 0.6;
+    /* Peak opacity */
+    transform: scale(1.1);
   }
-  45% {
-    opacity: 0.85;
-    transform: translateZ(0) scale(1.01);
-    background-position: 60% 50%;
-  }
+
   100% {
     opacity: 0;
-    transform: translateZ(0) scale(1.02);
-    background-position: 100% 50%;
+    transform: scale(1.15);
+    /* Drift outward */
   }
 }
 
-/* Reduced motion: disable the animated glow */
+/* Reduced motion: disable */
 @media (prefers-reduced-motion: reduce) {
-  #screen-glow-overlay { display: none; }
-  .screen-glow-active::before { animation: none; }
+  #screen-glow-overlay {
+    display: none;
+  }
+
+  .screen-glow-active {
+    animation: none;
+  }
 }

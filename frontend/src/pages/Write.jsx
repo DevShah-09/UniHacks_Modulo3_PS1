@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import Navbar from "../components/layout/Navbar";
 import PersonaAvatar from "../components/layout/PersonaAvatar";
+import { calculateHarshScore } from "../utils/harshWordDetector";
 
 export default function Write() {
   const navigate = useNavigate();
@@ -22,6 +23,9 @@ export default function Write() {
   const [liveAiFeedback, setLiveAiFeedback] = useState({});
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState("");
+
+  // Harsh word detection state
+  const [harshScore, setHarshScore] = useState({ score: 0, intensity: "safe", count: 0, words: [] });
 
   const debounceTimer = useRef(null);
 
@@ -96,6 +100,10 @@ export default function Write() {
   const handleContentChange = (e) => {
     const newContent = e.target.value;
     setContent(newContent);
+
+    // Calculate harsh score immediately (no debounce)
+    const harshAnalysis = calculateHarshScore(newContent);
+    setHarshScore(harshAnalysis);
 
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
@@ -279,11 +287,11 @@ export default function Write() {
               {/* Publish (Pastel Yellow) */}
               <button
                 onClick={handlePublish}
-                disabled={loading}
+                disabled={loading || (harshScore.intensity === "harsh" && harshScore.score > 0.7)}
                 className="w-1/2 py-3 rounded-lg font-semibold text-sm 
     transition disabled:opacity-50"
                 style={{
-                  backgroundColor: "#F5C76A",
+                  backgroundColor: harshScore.intensity === "harsh" ? "#999" : "#F5C76A",
                   color: "black",
                 }}
               >
@@ -301,6 +309,111 @@ export default function Write() {
 
           {/* RIGHT SIDE */}
           <div className="space-y-6">
+
+            {/* Harsh Word Detection Score */}
+            <div
+              className="bg-[#2A2C38] rounded-2xl p-6 border shadow-md"
+              style={{
+                borderColor: 
+                  harshScore.intensity === "harsh" ? "#F28B82" :
+                  harshScore.intensity === "moderate" ? "#F5C76A" :
+                  harshScore.intensity === "caution" ? "#FFD166" :
+                  "#7FE6C5"
+              }}
+            >
+              <h2 className="text-lg font-semibold mb-4">Content Safety Check</h2>
+
+              {/* Score Bar */}
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-400">Harshness Score</span>
+                  <span 
+                    className="text-lg font-bold"
+                    style={{
+                      color:
+                        harshScore.intensity === "harsh" ? "#F28B82" :
+                        harshScore.intensity === "moderate" ? "#F5C76A" :
+                        harshScore.intensity === "caution" ? "#FFD166" :
+                        "#7FE6C5"
+                    }}
+                  >
+                    {(harshScore.score * 100).toFixed(0)}%
+                  </span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full h-2 bg-[#1C1D25] rounded-full overflow-hidden border border-white/10">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${harshScore.score * 100}%`,
+                      backgroundColor:
+                        harshScore.intensity === "harsh" ? "#F28B82" :
+                        harshScore.intensity === "moderate" ? "#F5C76A" :
+                        harshScore.intensity === "caution" ? "#FFD166" :
+                        "#7FE6C5"
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Intensity Badge */}
+              <div className="mb-4">
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold"
+                  style={{
+                    backgroundColor:
+                      harshScore.intensity === "harsh" ? "rgba(242, 139, 130, 0.2)" :
+                      harshScore.intensity === "moderate" ? "rgba(245, 199, 106, 0.2)" :
+                      harshScore.intensity === "caution" ? "rgba(255, 209, 102, 0.2)" :
+                      "rgba(127, 230, 197, 0.2)",
+                    color:
+                      harshScore.intensity === "harsh" ? "#F28B82" :
+                      harshScore.intensity === "moderate" ? "#F5C76A" :
+                      harshScore.intensity === "caution" ? "#FFD166" :
+                      "#7FE6C5"
+                  }}
+                >
+                  {harshScore.intensity === "safe" ? "✅ Safe" :
+                   harshScore.intensity === "caution" ? "⚠️ Caution" :
+                   harshScore.intensity === "moderate" ? "🔔 Moderate" :
+                   "⛔ Harsh"}
+                </span>
+              </div>
+
+              {/* Harsh Words Found */}
+              {harshScore.words.length > 0 && (
+                <div className="mb-4 p-3 bg-[#1C1D25] rounded-lg border border-white/10">
+                  <p className="text-xs text-gray-400 mb-2">Harsh words detected:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {harshScore.words.map((w, idx) => (
+                      <span 
+                        key={idx}
+                        className="px-2 py-1 text-xs rounded bg-white/10 text-gray-200"
+                      >
+                        {w.word} <span className="text-gray-500">×{w.count}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendation */}
+              {harshScore.intensity === "harsh" && (
+                <div className="p-3 bg-[#F28B82]/10 border border-[#F28B82]/30 rounded-lg">
+                  <p className="text-xs text-[#F28B82] font-semibold">
+                    💡 Recommendation: Consider using the "Make Constructive" button to tone this down before posting.
+                  </p>
+                </div>
+              )}
+
+              {harshScore.intensity === "moderate" && (
+                <div className="p-3 bg-[#F5C76A]/10 border border-[#F5C76A]/30 rounded-lg">
+                  <p className="text-xs text-[#F5C76A] font-semibold">
+                    💡 Tip: This post contains moderately strong language. Consider refining it for a better tone.
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Persona Selector */}
             <div className="bg-[#2A2C38] rounded-2xl p-6 border border-white/5 shadow-md">
