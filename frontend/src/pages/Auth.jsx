@@ -48,7 +48,7 @@ export default function Auth() {
       if (!orgResponse) {
         setShowOrgSetup(true);
       } else {
-        navigate("/feed");
+        navigate("/knowledge");
       }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed.");
@@ -71,7 +71,7 @@ export default function Auth() {
 
       localStorage.setItem("userInfo", JSON.stringify(response.data));
 
-      navigate("/feed");
+      navigate("/knowledge");
     } catch (err) {
       setError(err.response?.data?.message || "Signup failed.");
     }
@@ -92,7 +92,7 @@ export default function Auth() {
       userInfo.organization = orgResponse._id;
       localStorage.setItem("userInfo", JSON.stringify(userInfo));
 
-      navigate("/feed");
+      navigate("/knowledge");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create organization.");
     }
@@ -229,7 +229,7 @@ export default function Auth() {
           <div className="overlay">
             <div className="overlay-panel overlay-left">
               <h1>Welcome Back!</h1>
-              <p>Login to TalentBridge</p>
+              <p>Login to CultureStack</p>
 
               <button className="ghost" onClick={() => setIsSignUp(false)}>
                 Sign In

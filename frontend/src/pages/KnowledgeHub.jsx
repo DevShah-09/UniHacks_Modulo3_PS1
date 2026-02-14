@@ -1,32 +1,69 @@
 import { useState, useEffect } from "react";
+import { triggerScreenGlow } from "../utils/screenGlow";
 import Navbar from "../components/layout/Navbar";
 import PostCard from "../components/layout/PostCard";
-import { searchPosts, getTags } from "../api/axios";
+import { searchPosts, getTrendingPosts } from "../api/axios";
+import { useNavigate } from "react-router-dom";
 
 export default function KnowledgeHub() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
-  const [tags, setTags] = useState([]);
   const [results, setResults] = useState([]);
   const [contentType, setContentType] = useState("all");
+  const [sortBy, setSortBy] = useState("latest");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch tags
+  const [trending, setTrending] = useState([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
+  const [trendingError, setTrendingError] = useState("");
+  const navigate = useNavigate();
+
+  // Using centralized screen glow (see src/utils/screenGlow.js)
+
+  const doSearchNow = async () => {
+    triggerScreenGlow();
+
+    setLoading(true);
+    setError("");
+    try {
+      const response = await searchPosts(
+        searchQuery,
+        selectedTags,
+        contentType !== "all" ? contentType : "",
+        sortBy
+      );
+      setResults(Array.isArray(response) ? response : response.results || []);
+    } catch (err) {
+      console.error('Immediate search failed', err);
+      setError('Failed to search posts. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => () => {}, []);
+
   useEffect(() => {
-    const fetchTags = async () => {
+    let mounted = true;
+    const fetchTrending = async () => {
       try {
-        const tagsData = await getTags();
-        setTags(Array.isArray(tagsData) ? tagsData : []);
+        setTrendingLoading(true);
+        setTrendingError("");
+        const list = await getTrendingPosts(3, "10days");
+        if (mounted) setTrending(list || []);
       } catch (err) {
-        console.error("Error fetching tags:", err);
-        setError("Failed to load tags");
+        console.error('Failed to fetch trending posts', err);
+        if (mounted) setTrendingError('Failed to load trending posts');
+      } finally {
+        if (mounted) setTrendingLoading(false);
       }
     };
-    fetchTags();
+
+    fetchTrending();
+    return () => { mounted = false; };
   }, []);
 
-  // Debounced Search
   useEffect(() => {
     const timer = setTimeout(async () => {
       setLoading(true);
@@ -36,7 +73,8 @@ export default function KnowledgeHub() {
         const response = await searchPosts(
           searchQuery,
           selectedTags,
-          contentType !== "all" ? contentType : ""
+          contentType !== "all" ? contentType : "",
+          sortBy
         );
 
         setResults(
@@ -52,78 +90,27 @@ export default function KnowledgeHub() {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, selectedTags, contentType]);
+  }, [searchQuery, selectedTags, contentType, sortBy]);
 
-  // Toggle tag selection
-  const toggleTag = (tagName) => {
-    setSelectedTags((prev) =>
-      prev.includes(tagName)
-        ? prev.filter((t) => t !== tagName)
-        : [...prev, tagName]
-    );
-  };
 
   const contentTypes = [
     { label: "All", value: "all" },
     { label: "Reflection", value: "reflection" },
     { label: "Anonymous", value: "anonymous" },
-    { label: "Podcast", value: "podcast" },
   ];
 
   return (
     <div className="min-h-screen bg-[#1C1D25] text-white">
+      <div className="w-full flex justify-center">
+        <div className="w-[90%] grid grid-cols-1 lg:grid-cols-12 gap-10 px-6 py-8">
 
-
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 px-6 py-8">
-
-        {/* LEFT SIDEBAR */}
-        <div className="lg:col-span-1 space-y-6">
-
-          {/* TAGS */}
-          <div className="relative bg-[#242631] rounded-2xl p-5 border border-white/10 shadow-md overflow-hidden">
-            <div className="absolute left-0 top-0 h-full w-[6px] bg-[#7FE6C5]" />
-
-            <h3 className="text-lg font-bold mb-4 pl-3">Tags</h3>
-
-            <div className="space-y-2 pl-3">
-              {tags.length > 0 ? (
-                tags.map((tag, index) => {
-                  const pastel =
-                    ["#7FE6C5", "#4BA9FF", "#F5C76A", "#F28B82", "#B9A6FF"][
-                    index % 5
-                    ];
-
-                  const active = selectedTags.includes(tag);
-
-                  return (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                      className="w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition"
-                      style={{
-                        backgroundColor: active ? pastel : "#1C1D25",
-                        color: active ? "black" : "white",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="text-gray-500 text-sm">
-                  No tags available
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* CONTENT TYPE */}
+        {/* LEFT SIDEBAR (3 cols) */}
+        <div className="lg:col-span-3 space-y-6 h-fit sticky top-24">
           <div className="relative bg-[#242631] rounded-2xl p-5 border border-white/10 shadow-md overflow-hidden">
             <div className="absolute left-0 top-0 h-full w-[6px] bg-[#F5C76A]" />
 
             <h3 className="text-lg font-bold mb-4 pl-3">
-              🎛 Content Type
+              Content Type
             </h3>
 
             <div className="space-y-2 pl-3">
@@ -152,30 +139,87 @@ export default function KnowledgeHub() {
               })}
             </div>
           </div>
+          <div className="bg-[#242631] rounded-2xl p-5 border border-white/10 shadow-md">
+            <h3 className="text-lg font-semibold mb-4">Trending</h3>
+
+            {trendingLoading ? (
+              <div className="text-sm text-gray-400">Loading...</div>
+            ) : trendingError ? (
+              <div className="text-sm text-red-400">{trendingError}</div>
+            ) : trending.length === 0 ? (
+              <div className="text-sm text-gray-400">No trending posts</div>
+            ) : (
+              <ol className="space-y-3">
+                {trending.map((t, idx) => (
+                  <li
+                    key={t._id}
+                    onClick={() => navigate(`/posts/${t._id}`)}
+                    className="flex gap-3 items-start cursor-pointer hover:bg-[#2A2C38] p-2 rounded"
+                  >
+                    <div className="w-6 text-sm font-semibold text-gray-400">{idx + 1}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-white truncate">{t.title}</div>
+                      <div className="text-xs text-gray-400 truncate">{t.summary || ''}</div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         </div>
 
-        {/* RIGHT CONTENT */}
-        <div className="lg:col-span-3 space-y-6">
+        {/* CENTER CONTENT (9 cols) */}
+        <div className="lg:col-span-9 space-y-6">
+          <div>
+            <h1 className="text-4xl font-bold">
+              Knowledge Hub
+            </h1>
+            <p className="text-gray-400 mt-2">
+              Search reflections, podcasts, and internal learnings across your org.
+            </p>
+          </div>
 
-          {/* TITLE */}
-          <h1 className="text-4xl font-bold">
-            Knowledge Hub
-          </h1>
+          <div className="flex gap-4 items-stretch">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="Search insights..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearchNow(); } }}
+                className="search-input w-full px-5 pr-12 py-3 bg-[#242631] border-2 border-white/20 rounded-xl text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4BA9FF] focus:border-[#4BA9FF]"
+              />
 
-          <p className="text-gray-400">
-            Search reflections, podcasts, and internal learnings across your org.
-          </p>
+              <button
+                type="button"
+                aria-label="Search"
+                onClick={doSearchNow}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white focus:outline-none transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M12.9 14.32a8 8 0 111.414-1.414l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387zM8 14a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
 
-          {/* SEARCH BAR */}
-          <input
-            type="text"
-            placeholder="Search insights..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#242631] border border-white/10 rounded-xl px-5 py-4 text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4BA9FF]"
-          />
+            <div className="relative min-w-[140px]">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full px-4 py-3 bg-[#242631] border-2 border-white/20 rounded-xl text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4BA9FF] focus:border-[#4BA9FF] appearance-none cursor-pointer"
+              >
+                <option value="latest">Latest</option>
+                <option value="oldest">Oldest</option>
+                <option value="upvotes">Most Liked</option>
+              </select>
+              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
 
-          {/* RESULTS SUMMARY */}
           {!loading && results.length > 0 && (
             <p className="text-gray-400 text-sm">
               Showing{" "}
@@ -186,7 +230,6 @@ export default function KnowledgeHub() {
             </p>
           )}
 
-          {/* LOADING */}
           {loading && (
             <div className="text-center py-12">
               <p className="text-gray-400 italic">
@@ -195,23 +238,20 @@ export default function KnowledgeHub() {
             </div>
           )}
 
-          {/* ERROR */}
           {error && (
             <div className="bg-[#F28B82]/20 border border-[#F28B82] text-[#F28B82] px-4 py-3 rounded-xl">
               {error}
             </div>
           )}
 
-          {/* EMPTY */}
           {!loading && results.length === 0 && !error && (
             <div className="bg-[#242631] border border-white/10 rounded-2xl p-10 text-center">
               <p className="text-gray-400 italic">
-                No results found. Try adjusting filters ✨
+                No results found. Try adjusting filters
               </p>
             </div>
           )}
 
-          {/* RESULTS */}
           {!loading && results.length > 0 && (
             <div className="space-y-5">
               {results.map((post) => (
@@ -220,7 +260,10 @@ export default function KnowledgeHub() {
             </div>
           )}
         </div>
+
+        {/* RIGHT SIDEBAR removed - trending moved into left column */}
       </div>
     </div>
+  </div>
   );
 }

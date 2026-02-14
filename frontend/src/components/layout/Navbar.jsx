@@ -82,16 +82,16 @@ export default function Navbar() {
           shadow-lg
         "
       >
-        {/* 🌟 Logo */}
+        {/* Logo (now links to Knowledge Hub) */}
         <Link
-          to="/feed"
+          to="/knowledge"
           className="text-2xl font-bold text-white tracking-wide"
         >
-          Talent<span className="text-[#4BA9FF]">Bridge</span>
+          Culture<span className="text-[#4BA9FF]">Stack</span>
         </Link>
 
         {/* 🔗 Nav Links */}
-        <div className="flex gap-12 text-sm font-medium">
+        <div className="flex gap-12 text-lg font-medium">
           {navLinks.map((link) => (
             <NavLink
               key={link.path}

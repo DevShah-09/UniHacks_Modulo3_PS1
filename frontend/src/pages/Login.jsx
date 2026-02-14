@@ -28,7 +28,7 @@ export default function Login() {
       if (!orgResponse) {
         setShowOrgSetup(true);
       } else {
-        navigate("/feed");
+        navigate("/knowledge");
       }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again.");
@@ -50,7 +50,7 @@ export default function Login() {
       userInfo.organization = orgResponse._id;
       localStorage.setItem('userInfo', JSON.stringify(userInfo));
 
-      navigate("/feed");
+      navigate("/knowledge");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create organization.");
     } finally {
@@ -63,7 +63,7 @@ export default function Login() {
         {!showOrgSetup ? (
           <>
             <h1 className="text-3xl font-bold text-center mb-2">
-              TalentBridge
+              CultureStack
             </h1>
             <p className="text-gray-500 text-center mb-6">
               Private reflections + AI feedback for teams

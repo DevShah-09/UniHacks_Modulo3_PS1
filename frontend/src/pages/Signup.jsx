@@ -22,7 +22,7 @@ export default function Signup() {
     try {
       const response = await api.post("/auth/register", formData);
       localStorage.setItem("userInfo", JSON.stringify(response.data));
-      navigate("/feed");
+      navigate("/knowledge");
     } catch (err) {
       setError(err.response?.data?.message || "Signup failed. Please try again.");
     } finally {

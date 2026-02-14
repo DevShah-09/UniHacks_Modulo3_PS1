@@ -77,6 +77,11 @@ export const addOrgMember = async (orgId, email) => {
 };
 
 // Activity helpers
+export const getActivities = async () => {
+  const response = await api.get('/activity');
+  return response.data;
+};
+
 export const getUnreadActivityCount = async () => {
   const response = await api.get('/activity/unread');
   // response.data: { count: number }
@@ -89,11 +94,12 @@ export const clearUnreadActivityCount = async () => {
 };
 
 // Posts helpers
-export const searchPosts = async (query = '', tags = [], contentType = '') => {
+export const searchPosts = async (query = '', tags = [], contentType = '', sortBy = 'latest') => {
   const params = new URLSearchParams();
   if (query) params.append('query', query);
   if (tags.length) params.append('tags', tags.join(','));
   if (contentType) params.append('contentType', contentType);
+  if (sortBy) params.append('sortBy', sortBy);
   const response = await api.get(`/search?${params.toString()}`);
   return response.data;
 };
@@ -111,6 +117,12 @@ export const getPostsByTag = async (tagName) => {
 // Toggle like/unlike for a post
 export const toggleLike = async (postId) => {
   const response = await api.post(`/posts/${postId}/like`);
+  return response.data;
+};
+
+// Vote API: upvote | downvote | remove
+export const voteOnPost = async (postId, voteType) => {
+  const response = await api.post(`/posts/${postId}/vote`, { voteType });
   return response.data;
 };
 
@@ -133,6 +145,12 @@ export const createComment = async (postId, content) => {
 
 export const deleteComment = async (commentId) => {
   const response = await api.delete(`/comments/${commentId}`);
+  return response.data;
+};
+
+// React to a comment: like | dislike | remove
+export const reactToComment = async (commentId, reactionType) => {
+  const response = await api.post(`/comments/${commentId}/reaction`, { reactionType });
   return response.data;
 };
 
@@ -181,9 +199,46 @@ export const getPerspectives = async (postId) => {
   return response.data;
 };
 
+// Trending posts
+export const getTrendingPosts = async (limit = 5, timeRange = '10days') => {
+  const response = await api.get(`/posts/trending?limit=${limit}&timeRange=${timeRange}`);
+  return response.data;
+};
+
+// Chat / Direct Messaging helpers
+export const getMyConversations = async () => {
+  const response = await api.get('/conversations');
+  return response.data;
+};
+
+export const createOrGetConversation = async (recipientId) => {
+  const response = await api.post(`/conversations`, { recipientId });
+  return response.data;
+};
+
+export const getConversationMessages = async (conversationId) => {
+  const response = await api.get(`/conversations/${conversationId}/messages`);
+  return response.data;
+};
+
+export const sendChatMessage = async ({ conversationId, recipientId, content }) => {
+  const response = await api.post(`/messages`, { conversationId, recipientId, content });
+  return response.data;
+};
+
 // User profile
 export const getUserProfile = async (userId) => {
   const response = await api.get(`/users/${userId}/profile`);
+  return response.data;
+};
+
+export const getUserPosts = async (userId) => {
+  const response = await api.get(`/posts/user/${userId}`);
+  return response.data;
+};
+
+export const getUserPodcasts = async (userId) => {
+  const response = await api.get(`/podcasts/user/${userId}`);
   return response.data;
 };
 

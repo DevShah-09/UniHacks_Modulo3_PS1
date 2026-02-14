@@ -1,23 +1,41 @@
+import { useEffect, useState } from "react";
 import Navbar from "../components/layout/Navbar";
+import { getActivities } from "../api/axios";
 
 export default function Activity() {
-  const activities = [
-    {
-      icon: "💬",
-      text: "Someone commented on your reflection",
-      color: "#4BA9FF",
-    },
-    {
-      icon: "🧠",
-      text: "AI Feedback generated on your post",
-      color: "#B9A6FF",
-    },
-    {
-      icon: "🎙",
-      text: "New podcast uploaded in your team lounge",
-      color: "#7FE6C5",
-    },
-  ];
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const data = await getActivities();
+        // Map backend data to UI format
+        const formatted = (data || []).map(a => ({
+          text: a.text,
+          time: new Date(a.createdAt).toLocaleString(),
+          color: getColorByType(a.type),
+          initial: (a.user?.fullName?.[0] || '?').toUpperCase()
+        }));
+        setActivities(formatted);
+      } catch (err) {
+        console.error("Failed to load activities", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchActivities();
+  }, []);
+
+  const getColorByType = (type) => {
+    switch (type) {
+      case 'post': return '#4BA9FF'; // Blue
+      case 'comment': return '#B9A6FF'; // Purple
+      case 'podcast': return '#7FE6C5'; // Green
+      case 'ai_feedback': return '#F28B82'; // Red/Pink
+      default: return '#F5C76A'; // Yellow
+    }
+  };
 
   return (
     <>
@@ -36,42 +54,53 @@ export default function Activity() {
           </div>
 
           {/* Activity Feed */}
-          <div className="space-y-5">
-            {activities.map((item, index) => (
-              <div
-                key={index}
-                className="relative bg-[#242631] rounded-2xl p-6 
-                border border-white/10 shadow-md overflow-hidden 
-                hover:scale-[1.01] transition"
-              >
-                {/* Accent Strip */}
+          {loading ? (
+            <div className="text-gray-400">Loading activity...</div>
+          ) : activities.length === 0 ? (
+            <div className="text-gray-400">No activity yet.</div>
+          ) : (
+            <div className="space-y-5">
+              {activities.map((item, index) => (
                 <div
-                  className="absolute left-0 top-0 h-full w-[6px]"
-                  style={{ backgroundColor: item.color }}
-                />
-
-                {/* Content */}
-                <div className="flex items-center gap-4 pl-3">
-                  {/* Icon Bubble */}
+                  key={index}
+                  className="relative bg-[#242631] rounded-2xl p-6 
+                  border border-white/10 shadow-md overflow-hidden 
+                  hover:scale-[1.01] transition"
+                >
+                  {/* Accent Strip */}
                   <div
-                    className="w-12 h-12 flex items-center justify-center 
-                    rounded-full text-xl"
-                    style={{
-                      backgroundColor: item.color,
-                      color: "black",
-                    }}
-                  >
-                    {item.icon}
-                  </div>
+                    className="absolute left-0 top-0 h-full w-[6px]"
+                    style={{ backgroundColor: item.color }}
+                  />
 
-                  {/* Text */}
-                  <p className="text-gray-200 font-medium text-sm md:text-base">
-                    {item.text}
-                  </p>
+                  {/* Content */}
+                  <div className="flex items-center gap-4 pl-3">
+                    {/* Icon Bubble */}
+                    <div
+                      className="w-12 h-12 flex items-center justify-center 
+                      rounded-full text-xl font-bold"
+                      style={{
+                        backgroundColor: item.color,
+                        color: "black",
+                      }}
+                    >
+                      {item.initial}
+                    </div>
+
+                    {/* Text */}
+                    <div className="flex-1">
+                      <p className="text-gray-200 font-medium text-sm md:text-base">
+                        {item.text}
+                      </p>
+                      <p className="text-gray-500 text-xs mt-1">
+                        {item.time}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Empty Future Note */}
           <p className="text-gray-500 italic text-sm pt-4">

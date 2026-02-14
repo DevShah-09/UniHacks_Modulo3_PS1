@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toggleLike } from "../../api/axios";
+import { voteOnPost } from "../../api/axios";
 
 export default function PostCard({ post }) {
   const navigate = useNavigate();
@@ -25,23 +25,89 @@ export default function PostCard({ post }) {
   const authorName = post.author?.fullName || "Anonymous";
   const authorInitial = authorName[0]?.toUpperCase() || "A";
 
-  // Likes State
-  const [liked, setLiked] = useState(Boolean(post.likedByCurrentUser));
-  const [likeCount, setLikeCount] = useState(post.likesCount || 0);
+  // Vote state (supports upvote / downvote / remove)
+  const [userVote, setUserVote] = useState(post.currentUserVote || null); // 'upvote' | 'downvote' | null
+  const [upvoteCount, setUpvoteCount] = useState(post.upvoteCount || 0);
+  const [downvoteCount, setDownvoteCount] = useState(post.downvoteCount || 0);
 
-  // Like Handler
-  const handleLike = async (e) => {
+  // Vote handlers (optimistic UI)
+  const handleUpvote = async (e) => {
     e.stopPropagation();
+    const prevVote = userVote;
 
     try {
-      setLiked(!liked);
-      setLikeCount((prev) => prev + (liked ? -1 : 1));
-
-      const res = await toggleLike(post._id);
-      setLiked(res.liked);
-      setLikeCount(res.likesCount);
+      if (prevVote === 'upvote') {
+        // remove
+        setUserVote(null);
+        setUpvoteCount((c) => c - 1);
+        const res = await voteOnPost(post._id, 'remove');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      } else if (prevVote === 'downvote') {
+        // switch down -> up
+        setUserVote('upvote');
+        setUpvoteCount((c) => c + 1);
+        setDownvoteCount((c) => c - 1);
+        const res = await voteOnPost(post._id, 'upvote');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      } else {
+        // new upvote
+        setUserVote('upvote');
+        setUpvoteCount((c) => c + 1);
+        const res = await voteOnPost(post._id, 'upvote');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      }
     } catch (err) {
-      console.error("Like error:", err);
+      // revert optimistic change on error
+      setUserVote(prevVote);
+      if (prevVote === 'upvote') setUpvoteCount((c) => c + 1);
+      if (prevVote === 'downvote') setDownvoteCount((c) => c + 1);
+      console.error('Vote error', err);
+    }
+  };
+
+  const handleDownvote = async (e) => {
+    e.stopPropagation();
+    const prevVote = userVote;
+
+    try {
+      if (prevVote === 'downvote') {
+        // remove
+        setUserVote(null);
+        setDownvoteCount((c) => c - 1);
+        const res = await voteOnPost(post._id, 'remove');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      } else if (prevVote === 'upvote') {
+        // switch up -> down
+        setUserVote('downvote');
+        setDownvoteCount((c) => c + 1);
+        setUpvoteCount((c) => c - 1);
+        const res = await voteOnPost(post._id, 'downvote');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      } else {
+        // new downvote
+        setUserVote('downvote');
+        setDownvoteCount((c) => c + 1);
+        const res = await voteOnPost(post._id, 'downvote');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      }
+    } catch (err) {
+      // revert optimistic change on error
+      setUserVote(prevVote);
+      if (prevVote === 'upvote') setUpvoteCount((c) => c + 1);
+      if (prevVote === 'downvote') setDownvoteCount((c) => c + 1);
+      console.error('Vote error', err);
     }
   };
 
@@ -73,7 +139,7 @@ export default function PostCard({ post }) {
 
           {/* Author */}
           <div>
-            <h3 className="text-white font-semibold">{authorName}</h3>
+            <h3 className="text-white font-semibold cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${post.author?._id}`); }}>{authorName}</h3>
             <p className="text-xs text-gray-400 italic">
               Posted {new Date(post.createdAt).toLocaleDateString()}
             </p>
@@ -125,18 +191,30 @@ export default function PostCard({ post }) {
       {/* ✅ Instagram Style Actions */}
       <div className="flex items-center gap-10 pl-5 mt-5 text-gray-400">
 
-        {/* Like */}
-        <button
-          onClick={handleLike}
-          className="
-            flex items-center gap-2
-            text-sm font-medium
-            hover:text-white transition
-          "
-        >
-          <span className="text-xl">{liked ? "❤️" : "🤍"}</span>
-          {likeCount}
-        </button>
+        {/* Vote controls: upvote / score / downvote */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleUpvote}
+            className={`flex items-center gap-2 text-sm font-medium transition ${userVote === 'upvote' ? 'text-[#4BA9FF]' : 'text-gray-400 hover:text-white'}`}
+          >
+            {/* Up arrow (swapped) */}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={userVote === 'upvote' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75V5.25m0 0 6.75 6.75M12 5.25 5.25 12" />
+            </svg>
+            <span>{upvoteCount}</span>
+          </button>
+
+          <button
+            onClick={handleDownvote}
+            className={`flex items-center gap-2 text-sm font-medium transition ${userVote === 'downvote' ? 'text-[#F28B82]' : 'text-gray-400 hover:text-white'}`}
+          >
+            {/* Down arrow (swapped) */}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={userVote === 'downvote' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5.25v13.5m0 0-6.75-6.75M12 18.75L18.75 12" />
+            </svg>
+            <span>{downvoteCount}</span>
+          </button>
+        </div>
 
         {/* Discuss */}
         <button
@@ -150,7 +228,9 @@ export default function PostCard({ post }) {
             hover:text-white transition
           "
         >
-          <span className="text-xl">💬</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 3.866-3.582 7-8 7a9.959 9.959 0 01-4.5-1.05L3 21l1.05-5.5A9.959 9.959 0 013 12c0-3.866 3.582-7 8-7s8 3.134 8 7z" />
+          </svg>
           Discuss
         </button>
       </div>

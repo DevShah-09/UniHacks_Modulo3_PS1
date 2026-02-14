@@ -11,6 +11,8 @@ import PodcastDetail from "./pages/PodcastDetail";
 import KnowledgeHub from "./pages/KnowledgeHub";
 import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
+import DirectMessage from "./pages/DirectMessage";
+import Messages from "./pages/Messages";
 import Auth from "./pages/Auth";
 import { useEffect } from "react";
 import api from "./api/axios";
@@ -19,6 +21,8 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      {/* Global screen glow overlay (mounted at root level) */}
+      <div id="screen-glow-overlay" aria-hidden="true"></div>
       <Routes>
         {/* ✅ AUTH PAGES (No Navbar) */}
         <Route path="/" element={<Auth />} />
@@ -99,6 +103,16 @@ export default function App() {
         />
 
         <Route
+          path="/messages"
+          element={
+            <>
+              <Navbar />
+              <Messages />
+            </>
+          }
+        />
+
+        <Route
           path="/activity"
           element={
             <>
@@ -114,6 +128,17 @@ export default function App() {
             <>
               <Navbar />
               <Profile />
+            </>
+          }
+        />
+
+        {/* Direct Messaging (DM) - opened from a user's profile */}
+        <Route
+          path="/dm/:userId"
+          element={
+            <>
+              <Navbar />
+              <DirectMessage />
             </>
           }
         />

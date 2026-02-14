@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import Navbar from "../components/layout/Navbar";
+import PersonaAvatar from "../components/layout/PersonaAvatar";
 
 export default function Write() {
   const navigate = useNavigate();
@@ -24,41 +25,29 @@ export default function Write() {
 
   const debounceTimer = useRef(null);
 
-  const [selectedPersona, setSelectedPersona] = useState("mentor");
+  const [selectedPersona, setSelectedPersona] = useState("innovator");
 
   const personas = [
-    { key: "mentor", label: "Mentor", icon: "🧑‍🏫" },
-    { key: "critic", label: "Critic", icon: "🤨" },
-    { key: "strategist", label: "Strategist", icon: "📈" },
-    { key: "executionManager", label: "Execution Manager", icon: "🎯" },
-    { key: "riskEvaluator", label: "Risk Evaluator", icon: "⚖️" },
-    { key: "innovator", label: "Innovator", icon: "💡" },
+    { key: "innovator", label: "Innovator" },
+    { key: "riskEvaluator", label: "Risk Evaluator" },
+    { key: "strategist", label: "Strategist" },
   ];
 
   // Pastel Accent Palette
   const accentColors = [
-    "#7FE6C5", // Mint
-    "#4BA9FF", // Sky Blue
-    "#F5C76A", // Gold
-    "#F28B82", // Coral Pink
-    "#B9A6FF", // Lavender
-    "#7FE6C5",
+    "#7FE6C5", // Mint - Innovator
+    "#F28B82", // Coral Pink - Risk Evaluator
+    "#4BA9FF", // Sky Blue - Strategist
   ];
 
   // Local fallback feedback
   const localPersonaFallback = () => ({
-    mentor:
-      "This is a valuable reflection. Try adding what outcome you want next.",
-    critic:
-      "This could be clearer with more evidence or examples. What caused this?",
-    strategist:
-      "Think about how this connects to long-term goals and future planning.",
-    executionManager:
-      "Convert this into 1–2 actionable steps with owners and deadlines.",
-    riskEvaluator:
-      "Consider risks like morale or delivery impact. Try small pilots first.",
     innovator:
       "Try experimenting with alternative approaches and validate assumptions.",
+    riskEvaluator:
+      "Consider risks like morale or delivery impact. Try small pilots first.",
+    strategist:
+      "Think about how this connects to long-term goals and future planning.",
   });
 
   // Cleanup debounce timer
@@ -345,7 +334,7 @@ export default function Write() {
                         }}
                       />
 
-                      <div className="text-xl mb-1">{p.icon}</div>
+                      <div className="text-xl mb-1">{p.label[0]}</div>
                       <span className="text-sm font-semibold">
                         {p.label}
                       </span>
@@ -360,6 +349,14 @@ export default function Write() {
               <h2 className="text-lg font-semibold mb-4">
                 {personas.find((p) => p.key === selectedPersona)?.label} Feedback
               </h2>
+
+              {/* HEYGEN AVATAR */}
+              <div className="w-full h-64 bg-black rounded-xl mb-4 overflow-hidden relative">
+                <PersonaAvatar
+                  persona={selectedPersona}
+                  textToSpeak={liveAiFeedback[selectedPersona]}
+                />
+              </div>
 
               <div
                 className="w-full bg-[#1C1D25] border border-white/10 rounded-xl 

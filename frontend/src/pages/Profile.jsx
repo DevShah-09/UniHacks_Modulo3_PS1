@@ -1,21 +1,20 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { getUserProfile } from "../api/axios";
+import { useParams, useNavigate } from "react-router-dom";
+import { getUserProfile, getUserPosts, getUserPodcasts } from "../api/axios";
+import PostCard from "../components/layout/PostCard";
+import PodcastCard from "../components/layout/PodcastCard";
 
 export default function Profile() {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState("posts");
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("posts"); // 'posts' | 'podcasts' | 'comments' | 'reactions'
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [userPosts, setUserPosts] = useState([]);
+  const [userPodcasts, setUserPodcasts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [podcastsLoading, setPodcastsLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  const tabs = [
-    { key: "posts", label: "📝 Posts" },
-    { key: "podcasts", label: "🎙 Podcasts" },
-    { key: "ai", label: "🧠 AI Feedback" },
-    { key: "drafts", label: "📌 Drafts" },
-    { key: "saved", label: "⭐ Saved" },
-  ];
 
   // Fetcher with local fallback (so page still renders if server is unreachable)
   const currentUserInfo =
@@ -32,7 +31,7 @@ export default function Profile() {
     } catch (err) {
       console.error('Failed to load profile', err);
       const serverMessage = err?.response?.data?.message || err?.message || 'Failed to load profile';
-      setError(serverMessage);
+      setError(`Server Error: ${serverMessage}`);
 
       // If the requested profile is the currently-logged-in user, show a local fallback
       if (currentUserInfo && currentUserInfo._id === id) {
@@ -59,10 +58,45 @@ export default function Profile() {
     }
   };
 
+  const fetchPosts = async () => {
+    if (userPosts.length > 0) return; // avoid refetch
+    setPostsLoading(true);
+    try {
+      const posts = await getUserPosts(id);
+      setUserPosts(posts);
+    } catch (err) {
+      console.error("Failed to fetch user posts", err);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  const fetchPodcasts = async () => {
+    if (userPodcasts.length > 0) return; // avoid refetch
+    setPodcastsLoading(true);
+    try {
+      const podcasts = await getUserPodcasts(id);
+      setUserPodcasts(podcasts);
+    } catch (err) {
+      console.error("Failed to fetch user podcasts", err);
+    } finally {
+      setPodcastsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Fetch content based on active tab
+  useEffect(() => {
+    if (activeTab === 'posts') {
+      fetchPosts();
+    } else if (activeTab === 'podcasts') {
+      fetchPodcasts();
+    }
+  }, [id, activeTab]);
 
   const retry = () => {
     fetchProfile();
@@ -87,7 +121,7 @@ export default function Profile() {
           <p className="mb-6">{error || 'This profile could not be loaded.'}</p>
           <div className="flex justify-center gap-3">
             <button onClick={retry} className="px-4 py-2 bg-[#4BA9FF] text-black rounded-full font-semibold">Retry</button>
-            <button onClick={() => window.location.href = '/feed'} className="px-4 py-2 bg-[#1C1D25] border border-white/10 text-gray-300 rounded-full">Go back</button>
+            <button onClick={() => window.location.href = '/knowledge'} className="px-4 py-2 bg-[#1C1D25] border border-white/10 text-gray-300 rounded-full">Go back</button>
           </div>
         </div>
       </div>
@@ -129,47 +163,112 @@ export default function Profile() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <Stat label={`📄 Posts`} value={stats.postsCount} />
-              <Stat label={`🎙 Podcasts`} value={stats.podcastsCount} />
-              <Stat label={`💬 Comments`} value={stats.commentsCount} />
-              <Stat label={`❤️ Reactions`} value={stats.reactionsCount} />
+              <Stat
+                label="Posts"
+                value={stats.postsCount}
+                isActive={activeTab === 'posts'}
+                onClick={() => setActiveTab('posts')}
+              />
+              <Stat
+                label="Podcasts"
+                value={stats.podcastsCount}
+                isActive={activeTab === 'podcasts'}
+                onClick={() => setActiveTab('podcasts')}
+              />
+
+              {/* Message action - inserted as a grid item or between stats */}
+
+
+              <Stat
+                label="Comments"
+                value={stats.commentsCount}
+                isActive={activeTab === 'comments'}
+                onClick={() => setActiveTab('comments')}
+              />
+              <Stat
+                label="Reactions"
+                value={stats.reactionsCount}
+                isActive={activeTab === 'reactions'}
+                onClick={() => setActiveTab('reactions')}
+              />
             </div>
           </div>
         </div>
 
-        {/* TABS */}
-        <div className="bg-[#242631] rounded-2xl border border-white/5 shadow-md p-4">
-          <div className="flex gap-3 overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-5 py-2 rounded-xl text-sm font-semibold transition ${activeTab === tab.key ? 'bg-[#4BA9FF] text-black' : 'bg-[#1C1D25] text-gray-300 hover:text-white'}`}>
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        {/* CONTENT AREA */}
+        <div className="bg-[#242631] rounded-2xl border border-white/5 shadow-md p-6 min-h-[300px]">
+          {activeTab === 'posts' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white">Posts & Reflections</h3>
+                <span className="text-sm text-gray-400">{stats.postsCount} total</span>
+              </div>
 
-          <div className="mt-6">
-            {activeTab === 'posts' && <TabCard title="📝 Reflections & Posts" desc={`All written contributions. Total posts: ${stats.postsCount}`} />}
-            {activeTab === 'podcasts' && <TabCard title="🎙 Podcast Contributions" desc={`Episodes contributed: ${stats.podcastsCount}`} />}
-            {activeTab === 'ai' && <TabCard title="🧠 AI Feedback History" desc={aiPersonalitySummary || 'No AI summary available.'} />}
-            {activeTab === 'drafts' && <TabCard title="📌 Drafts (Private)" desc="Unpublished reflections & saved drafts." />}
-            {activeTab === 'saved' && <TabCard title="⭐ Saved Insights" desc="Bookmarked reflections, podcasts, and knowledge snippets." />}
-          </div>
+              {postsLoading ? (
+                <div className="text-center py-10 text-gray-400 animate-pulse">Loading posts...</div>
+              ) : userPosts.length > 0 ? (
+                <div className="space-y-4">
+                  {userPosts.map(post => (
+                    <PostCard key={post._id} post={post} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <p>No posts visible or available.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'podcasts' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white">Podcasts</h3>
+                <span className="text-sm text-gray-400">{stats.podcastsCount} total</span>
+              </div>
+
+              {podcastsLoading ? (
+                <div className="text-center py-10 text-gray-400 animate-pulse">Loading podcasts...</div>
+              ) : userPodcasts.length > 0 ? (
+                <div className="space-y-4">
+                  {userPodcasts.map(podcast => (
+                    <PodcastCard key={podcast._id} podcast={podcast} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <p>No podcasts visible or available.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'comments' && (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-white mb-2">Comments</h3>
+              <p className="text-gray-400">Comment history is private or coming soon...</p>
+            </div>
+          )}
+
+          {activeTab === 'reactions' && (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-white mb-2">Reactions</h3>
+              <p className="text-gray-400">Reaction history coming soon...</p>
+            </div>
+          )}
         </div>
 
         {/* REFLECTION JOURNEY */}
         <div className="relative bg-[#242631] rounded-2xl p-7 border border-white/5 shadow-md overflow-hidden">
           <div className="absolute left-0 top-0 h-full w-[6px] bg-[#B9A6FF] rounded-l-2xl" />
 
-          <h2 className="text-lg font-semibold mb-4 pl-3">📈 Reflection Journey</h2>
+          <h2 className="text-lg font-semibold mb-4 pl-3">Reflection Journey</h2>
 
           <div className="space-y-3 text-sm text-gray-300 pl-3">
-            <p>🚀 Joined Org: {new Date(user.createdAt).toLocaleDateString()}</p>
-            <p>✍️ First Reflection Written: {reflectionJourney.firstReflection ? new Date(reflectionJourney.firstReflection).toLocaleDateString() : '—'}</p>
-            <p>🔥 Most Discussed Post: {reflectionJourney.topPostTitle || '—'}</p>
-            <p>🎙 Top Podcast Episode: {reflectionJourney.topPodcastTitle || '—'}</p>
+            <p>Joined Org: {new Date(user.createdAt).toLocaleDateString()}</p>
+            <p>First Reflection Written: {reflectionJourney.firstReflection ? new Date(reflectionJourney.firstReflection).toLocaleDateString() : '—'}</p>
+            <p>Most Discussed Post: {reflectionJourney.topPostTitle || '—'}</p>
+            <p>Top Podcast Episode: {reflectionJourney.topPodcastTitle || '—'}</p>
             {reflectionJourney.aiTheme && <p className="text-[#7FE6C5] font-medium">AI Theme Detected: {reflectionJourney.aiTheme}</p>}
           </div>
         </div>
@@ -178,7 +277,7 @@ export default function Profile() {
         <div className="relative bg-[#242631] rounded-2xl p-6 border border-white/5 shadow-md overflow-hidden">
           <div className="absolute left-0 top-0 h-full w-[6px] bg-[#F5C76A] rounded-l-2xl" />
 
-          <h2 className="text-lg font-semibold mb-5 pl-3 flex items-center gap-2">🔒 Psychological Safety Controls</h2>
+          <h2 className="text-lg font-semibold mb-5 pl-3 flex items-center gap-2">Psychological Safety Controls</h2>
 
           <div className="space-y-5 pl-3">
             <div className="flex justify-between items-center border-b border-white/5 pb-4">
@@ -200,7 +299,7 @@ export default function Profile() {
         <div className="relative bg-[#242631] rounded-2xl p-7 border border-white/5 shadow-md overflow-hidden">
           <div className="absolute left-0 top-0 h-full w-[6px] bg-[#7FE6C5] rounded-l-2xl" />
 
-          <h2 className="text-lg font-semibold mb-4 pl-3">🤖 AI Personality Insight</h2>
+          <h2 className="text-lg font-semibold mb-4 pl-3">AI Personality Insight</h2>
 
           <p className="text-gray-300 text-sm leading-relaxed pl-3">{aiPersonalitySummary || 'No AI personality summary available.'}</p>
         </div>
@@ -209,25 +308,28 @@ export default function Profile() {
   );
 }
 
-/* ✅ Premium Stat Card */
-function Stat({ label, value }) {
+/* ✅ Premium Stat Card with Click State */
+function Stat({ label, value, isActive, onClick }) {
   return (
     <div
-      className="flex items-center gap-3 bg-[#1C1D25] 
-      border border-white/10 rounded-xl px-4 py-3
-      hover:border-white/20 hover:scale-[1.02]
-      transition cursor-pointer"
+      onClick={onClick}
+      className={`flex items-center gap-3 bg-[#1C1D25] 
+      border rounded-xl px-4 py-3
+      hover:scale-[1.02] transition cursor-pointer
+      ${isActive ? 'border-[#4BA9FF] ring-1 ring-[#4BA9FF]/50' : 'border-white/10 hover:border-white/20'}
+      `}
     >
       {/* Icon Bubble */}
-      <div className="w-10 h-10 flex items-center justify-center rounded-full 
-      bg-[#242631] text-lg">
-        {label.split(" ")[0]}
+      <div className={`w-10 h-10 flex items-center justify-center rounded-full text-lg transition
+        ${isActive ? 'bg-[#4BA9FF] text-black' : 'bg-[#242631] text-white'}
+      `}>
+        {label.charAt(0)}
       </div>
 
       {/* Text */}
       <div>
-        <p className="text-xs text-gray-400 font-medium">
-          {label.slice(2)}
+        <p className={`text-xs font-medium transition ${isActive ? 'text-[#4BA9FF]' : 'text-gray-400'}`}>
+          {label}
         </p>
         <h3 className="text-xl font-bold text-white leading-tight">
           {value}
@@ -238,21 +340,6 @@ function Stat({ label, value }) {
 }
 
 
-/* ✅ Tab Content Card */
-function TabCard({ title, desc }) {
-  return (
-    <div className="bg-[#1C1D25] border border-white/10 rounded-xl p-6">
-      <h3 className="text-white font-semibold mb-2">{title}</h3>
-      <p className="text-gray-400 text-sm">{desc}</p>
-
-      <p className="text-gray-500 italic mt-4 text-sm">
-        Content will appear here soon...
-      </p>
-    </div>
-  );
-}
-
-/* ✅ Toggle Row Component */
 /* ✅ Toggle Row Component */
 function ToggleRow({ label, defaultOn }) {
   const [enabled, setEnabled] = useState(defaultOn);

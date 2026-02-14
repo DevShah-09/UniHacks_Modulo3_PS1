@@ -105,7 +105,7 @@ export default function PodcastDetail() {
             <div className="absolute left-0 top-0 h-full w-[6px] bg-[#4BA9FF]" />
 
             <h1 className="text-4xl font-bold mb-2 pl-4">
-              🎙 {podcast.title}
+              {podcast.title}
             </h1>
 
             <p className="text-gray-400 text-sm pl-4">
@@ -120,13 +120,27 @@ export default function PodcastDetail() {
             {podcast.audioUrl && (
               <audio
                 controls
+                preload="metadata"
+                crossOrigin="anonymous"
+                src={`http://localhost:5000${podcast.audioUrl}`}
                 className="w-full mt-6 rounded-xl bg-[#1C1D25] border border-white/10"
-              >
-                <source
-                  src={`http://localhost:5000${podcast.audioUrl}`}
-                  type="audio/mpeg"
-                />
-              </audio>
+                onLoadedMetadata={(e) => {
+                  const dur = Math.floor(e.target.duration || 0);
+                  if (dur > 0) {
+                    setPodcast((prev) => {
+                      // persist duration if backend doesn't have it yet
+                      if (prev && !prev.duration) {
+                        try {
+                          api.put(`/podcasts/${id}`, { duration: dur });
+                        } catch (err) {
+                          /* ignore persistence failure */
+                        }
+                      }
+                      return { ...prev, duration: dur };
+                    });
+                  }
+                }}
+              />
             )}
 
             {/* Description */}
@@ -148,7 +162,7 @@ export default function PodcastDetail() {
 
             <div className="flex justify-between items-center mb-4 pl-4">
               <h2 className="text-2xl font-bold">
-                ✨ Echo Summary
+                Echo Summary
               </h2>
 
               {!summaryLoading && (
@@ -189,7 +203,7 @@ export default function PodcastDetail() {
             <div className="absolute left-0 top-0 h-full w-[6px] bg-[#F5C76A]" />
 
             <h2 className="text-2xl font-bold mb-2 pl-4">
-              🔥 Sentiment Heatmap
+              Sentiment Heatmap
             </h2>
 
             <p className="text-gray-400 text-sm mb-5 pl-4">

@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "react-router-dom";
-import api, { toggleLike, refreshAiFeedback } from "../api/axios";
+import api, { voteOnPost, reactToComment, refreshAiFeedback } from "../api/axios";
 import Navbar from "../components/layout/Navbar";
 
 /* ✅ Persona Theme Palette */
 const PERSONAS = [
-  { key: "mentor", label: "🧑‍🏫 Mentor", accent: "#7FE6C5" },
-  { key: "critic", label: "🤨 Critic", accent: "#F28B82" },
-  { key: "strategist", label: "📈 Strategist", accent: "#4BA9FF" },
-  { key: "executionManager", label: "🎯 Execution Manager", accent: "#F5C76A" },
-  { key: "riskEvaluator", label: "⚖️ Risk Evaluator", accent: "#B9A6FF" },
-  { key: "innovator", label: "💡 Innovator", accent: "#7FE6C5" },
+  { key: "mentor", label: "Mentor", accent: "#7FE6C5" },
+  { key: "critic", label: "Critic", accent: "#F28B82" },
+  { key: "strategist", label: "Strategist", accent: "#4BA9FF" },
+  { key: "executionManager", label: "Execution Manager", accent: "#F5C76A" },
+  { key: "riskEvaluator", label: "Risk Evaluator", accent: "#B9A6FF" },
+  { key: "innovator", label: "Innovator", accent: "#7FE6C5" },
 ];
 
 export default function PostDetail() {
@@ -27,10 +27,11 @@ export default function PostDetail() {
   const [commentLoading, setCommentLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
 
-  /* Likes */
-  const [likesCount, setLikesCount] = useState(0);
-  const [liked, setLiked] = useState(false);
-  const [likeLoading, setLikeLoading] = useState(false);
+  /* Votes */
+  const [upvoteCount, setUpvoteCount] = useState(0);
+  const [downvoteCount, setDownvoteCount] = useState(0);
+  const [userVote, setUserVote] = useState(null); // 'upvote' | 'downvote' | null
+  const [voteLoading, setVoteLoading] = useState(false);
 
   /* AI */
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -52,8 +53,9 @@ export default function PostDetail() {
         const fetchedPost = postRes.data;
 
         setPost(fetchedPost);
-        setLikesCount(fetchedPost.likesCount || 0);
-        setLiked(Boolean(fetchedPost.likedByCurrentUser));
+        setUpvoteCount(fetchedPost.upvoteCount || 0);
+        setDownvoteCount(fetchedPost.downvoteCount || 0);
+        setUserVote(fetchedPost.currentUserVote || null);
 
         const commentsRes = await api.get(`/comments/${postId}`);
         setComments(commentsRes.data || []);
@@ -105,23 +107,137 @@ export default function PostDetail() {
     }
   };
 
-  /* Like Toggle */
-  const handleLike = async () => {
-    if (!post) return;
+  /* Comment reactions (like / dislike) - optimistic UI */
+  const handleReactToComment = async (commentId, reactionType) => {
+    // reactionType: 'like' | 'dislike' | 'remove'
+    const prevComments = comments;
+    const idx = comments.findIndex((c) => c._id === commentId);
+    if (idx === -1) return;
+
+    const prev = { ...comments[idx] };
+    const updated = { ...prev };
+
+    // optimistic changes
+    if (reactionType === 'remove') {
+      if (prev.currentUserReaction === 'like') updated.likeCount = Math.max(0, (prev.likeCount || 0) - 1);
+      if (prev.currentUserReaction === 'dislike') updated.dislikeCount = Math.max(0, (prev.dislikeCount || 0) - 1);
+      updated.currentUserReaction = null;
+    } else if (reactionType === 'like') {
+      if (prev.currentUserReaction === 'like') {
+        // will be removed by server
+        updated.likeCount = Math.max(0, (prev.likeCount || 0) - 1);
+        updated.currentUserReaction = null;
+      } else if (prev.currentUserReaction === 'dislike') {
+        updated.dislikeCount = Math.max(0, (prev.dislikeCount || 0) - 1);
+        updated.likeCount = (prev.likeCount || 0) + 1;
+        updated.currentUserReaction = 'like';
+      } else {
+        updated.likeCount = (prev.likeCount || 0) + 1;
+        updated.currentUserReaction = 'like';
+      }
+    } else if (reactionType === 'dislike') {
+      if (prev.currentUserReaction === 'dislike') {
+        updated.dislikeCount = Math.max(0, (prev.dislikeCount || 0) - 1);
+        updated.currentUserReaction = null;
+      } else if (prev.currentUserReaction === 'like') {
+        updated.likeCount = Math.max(0, (prev.likeCount || 0) - 1);
+        updated.dislikeCount = (prev.dislikeCount || 0) + 1;
+        updated.currentUserReaction = 'dislike';
+      } else {
+        updated.dislikeCount = (prev.dislikeCount || 0) + 1;
+        updated.currentUserReaction = 'dislike';
+      }
+    }
+
+    const newComments = [...comments];
+    newComments[idx] = updated;
+    setComments(newComments);
 
     try {
-      setLikeLoading(true);
+      const res = await reactToComment(commentId, reactionType);
+      // reconcile with server response
+      newComments[idx] = { ...newComments[idx], likeCount: res.likeCount, dislikeCount: res.dislikeCount, currentUserReaction: res.userReaction };
+      setComments(newComments);
+    } catch (err) {
+      // revert on error
+      setComments(prevComments);
+      console.error('Comment reaction failed', err);
+      setError('Failed to update reaction');
+    }
+  };
 
-      setLiked((prev) => !prev);
-      setLikesCount((prev) => prev + (liked ? -1 : 1));
-
-      const res = await toggleLike(post._id);
-      setLiked(res.liked);
-      setLikesCount(res.likesCount);
-    } catch {
-      setError("Failed to update like");
+  /* Vote handlers (optimistic) */
+  const handleUpvote = async () => {
+    if (!post) return;
+    const prev = userVote;
+    try {
+      setVoteLoading(true);
+      if (prev === 'upvote') {
+        setUserVote(null);
+        setUpvoteCount((c) => c - 1);
+        const res = await voteOnPost(post._id, 'remove');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      } else if (prev === 'downvote') {
+        setUserVote('upvote');
+        setUpvoteCount((c) => c + 1);
+        setDownvoteCount((c) => c - 1);
+        const res = await voteOnPost(post._id, 'upvote');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      } else {
+        setUserVote('upvote');
+        setUpvoteCount((c) => c + 1);
+        const res = await voteOnPost(post._id, 'upvote');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      }
+    } catch (err) {
+      setUserVote(prev);
+      setError('Failed to update vote');
+      console.error('vote error', err);
     } finally {
-      setLikeLoading(false);
+      setVoteLoading(false);
+    }
+  };
+
+  const handleDownvote = async () => {
+    if (!post) return;
+    const prev = userVote;
+    try {
+      setVoteLoading(true);
+      if (prev === 'downvote') {
+        setUserVote(null);
+        setDownvoteCount((c) => c - 1);
+        const res = await voteOnPost(post._id, 'remove');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      } else if (prev === 'upvote') {
+        setUserVote('downvote');
+        setDownvoteCount((c) => c + 1);
+        setUpvoteCount((c) => c - 1);
+        const res = await voteOnPost(post._id, 'downvote');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      } else {
+        setUserVote('downvote');
+        setDownvoteCount((c) => c + 1);
+        const res = await voteOnPost(post._id, 'downvote');
+        setUserVote(res.userVote);
+        setUpvoteCount(res.upvoteCount);
+        setDownvoteCount(res.downvoteCount);
+      }
+    } catch (err) {
+      setUserVote(prev);
+      setError('Failed to update vote');
+      console.error('vote error', err);
+    } finally {
+      setVoteLoading(false);
     }
   };
 
@@ -222,21 +338,34 @@ export default function PostDetail() {
 
               {/* Reactions */}
               <div className="flex gap-3 mt-6 pl-3">
+                <div className="flex gap-3">
                 <button
-                  onClick={handleLike}
-                  disabled={likeLoading}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition
-                  ${liked ? "bg-[#F28B82] text-black" : "bg-[#1C1D25] text-gray-300 hover:bg-[#2A2C38]"}`}
+                  onClick={handleUpvote}
+                  disabled={voteLoading}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${userVote === 'upvote' ? 'bg-[#4BA9FF] text-black' : 'bg-[#1C1D25] text-gray-300 hover:bg-[#2A2C38]'}`}
                 >
-                  ❤️ {likesCount}
+                  ▲ Up {upvoteCount}
+                </button>
+
+                <button
+                  onClick={handleDownvote}
+                  disabled={voteLoading}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${userVote === 'downvote' ? 'bg-[#F28B82] text-black' : 'bg-[#1C1D25] text-gray-300 hover:bg-[#2A2C38]'}`}
+                >
+                  ▼ Down {downvoteCount}
                 </button>
 
                 <div className="px-4 py-2 rounded-lg bg-[#1C1D25] text-gray-300 text-sm">
-                  💡 {post.refineCount || 0}
+                  Score {upvoteCount - downvoteCount}
+                </div>
+              </div>
+
+                <div className="px-4 py-2 rounded-lg bg-[#1C1D25] text-gray-300 text-sm">
+                  Refinements {post.refineCount || 0}
                 </div>
 
                 <div className="px-4 py-2 rounded-lg bg-[#1C1D25] text-gray-300 text-sm">
-                  💬 {comments.length}
+                  Comments {comments.length}
                 </div>
               </div>
             </div>
@@ -276,6 +405,31 @@ export default function PostDetail() {
                       <p className="text-gray-300 text-sm">
                         {comment.content}
                       </p>
+
+                      {/* Comment-level reactions (smaller/subtle) */}
+                      <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
+                        <button
+                          onClick={() => handleReactToComment(comment._id, comment.currentUserReaction === 'like' ? 'remove' : 'like')}
+                          className={`flex items-center gap-2 transition ${comment.currentUserReaction === 'like' ? 'text-[#4BA9FF]' : 'hover:text-white'}`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                            <path d="M2 10a6 6 0 1112 0A6 6 0 012 10zm7-2a1 1 0 00-2 0v3a1 1 0 001 1h1v2h1v-3h1a1 1 0 001-1V8a1 1 0-1-1h-3z" />
+                          </svg>
+                          <span>{comment.likeCount || 0}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleReactToComment(comment._id, comment.currentUserReaction === 'dislike' ? 'remove' : 'dislike')}
+                          className={`flex items-center gap-2 transition ${comment.currentUserReaction === 'dislike' ? 'text-[#F28B82]' : 'hover:text-white'}`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                            <path d="M18 10a6 6 0 11-12 0 6 6 0 0112 0zm-9 2a1 1 0 012 0v3a1 1 0 01-1 1H9v-3H8v-1h1z" />
+                          </svg>
+                          <span>{comment.dislikeCount || 0}</span>
+                        </button>
+
+                        <div className="text-xs text-gray-500">{comment.currentUserReaction ? `You reacted: ${comment.currentUserReaction}` : ''}</div>
+                      </div>
                     </div>
                   ))
                 )}

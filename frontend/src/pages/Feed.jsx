@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import PostCard from "../components/layout/PostCard";
-import api from "../api/axios";
+import api, { getTrendingPosts } from "../api/axios";
 
 export default function Feed() {
   const [posts, setPosts] = useState([]);
@@ -38,10 +38,22 @@ export default function Feed() {
     fetchPosts();
   }, []);
 
-  // ✅ Trending Posts Logic
-  const trendingPosts = [...posts]
-    .sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0))
-    .slice(0, 3);
+  // ✅ Trending Posts (server-side ranking)
+  const [trendingPosts, setTrendingPosts] = useState([]);
+
+  const fetchTrending = async () => {
+    try {
+      const res = await getTrendingPosts(3);
+      setTrendingPosts(res || []);
+    } catch (err) {
+      // fallback: compute client-side from net votes
+      setTrendingPosts([
+        ...posts
+      ].sort((a, b) => ((b.upvoteCount || 0) - (b.downvoteCount || 0)) - ((a.upvoteCount || 0) - (a.downvoteCount || 0))).slice(0, 3));
+    }
+  };
+
+  useEffect(() => { fetchTrending(); }, [posts]);
 
   return (
     <div className="min-h-screen bg-[#1C1D25] text-white px-10 py-4">
@@ -58,7 +70,7 @@ export default function Feed() {
           {/* Error */}
           {error && (
             <div className="bg-red-500/20 border border-red-500 text-red-300 p-4 rounded-xl">
-              <p>⚠️ {error}</p>
+              <p>{error}</p>
               <button
                 onClick={fetchPosts}
                 className="mt-3 px-4 py-2 bg-red-600 rounded-lg"
@@ -71,7 +83,7 @@ export default function Feed() {
           {/* No Posts */}
           {!loading && !error && posts.length === 0 && (
             <p className="text-gray-400 text-center">
-              No posts yet. Start sharing reflections ✨
+              No posts yet. Start sharing reflections
             </p>
           )}
 
@@ -92,7 +104,7 @@ export default function Feed() {
             <div className="absolute left-0 top-0 h-full w-[7px] bg-[#F28B82]" />
 
             <h2 className="font-semibold mb-3 pl-5">
-              🔥 Trending Discussions
+              Trending Discussions
             </h2>
 
             <ul className="text-sm text-gray-400 space-y-3 pl-5">
@@ -116,7 +128,7 @@ export default function Feed() {
             <div className="absolute left-0 top-0 h-full w-[7px] bg-[#B9A6FF]" />
 
             <h2 className="font-semibold mb-3 pl-5">
-              🤖 AI Thought Starter
+              AI Thought Starter
             </h2>
 
             <p className="text-sm text-gray-400 mb-4 pl-5">

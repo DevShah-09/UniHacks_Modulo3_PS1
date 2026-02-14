@@ -12,9 +12,18 @@ export default function UploadPodcast() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [duration, setDuration] = useState(0);
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const audioFile = e.target.files[0];
+      setFile(audioFile);
+
+      // Extract duration
+      const audio = new Audio(URL.createObjectURL(audioFile));
+      audio.onloadedmetadata = () => {
+        setDuration(Math.round(audio.duration));
+      };
     }
   };
 
@@ -37,6 +46,7 @@ export default function UploadPodcast() {
       formData.append("description", notes);
       formData.append("audio", file);
       formData.append("tags", JSON.stringify(["podcast"]));
+      formData.append("duration", duration);
 
       await api.post("/podcasts", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -66,7 +76,7 @@ export default function UploadPodcast() {
           </h1>
 
           <p className="text-gray-400">
-            Upload an audio clip and TalentBridge will generate Echo Summary +
+            Upload an audio clip and CultureStack will generate Echo Summary +
             Sentiment Insights automatically.
           </p>
 

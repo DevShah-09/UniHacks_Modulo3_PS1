@@ -33,7 +33,7 @@ export default function Podcasts() {
           {/* HEADER */}
           <div className="flex justify-between items-center">
             <h1 className="text-4xl font-bold">
-              🎙 Podcasts Lounge
+              Podcasts Lounge
             </h1>
 
             <Link
@@ -66,7 +66,7 @@ export default function Podcasts() {
           {!loading && podcasts.length === 0 && !error && (
             <div className="bg-[#242631] border border-white/10 rounded-2xl p-10 text-center">
               <p className="text-gray-400 mb-4 italic">
-                No podcasts found. Be the first to upload one 🎧
+                No podcasts found. Be the first to upload one
               </p>
 
               <Link
