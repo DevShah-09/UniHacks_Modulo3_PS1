@@ -1,77 +1,101 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 
 export default function Navbar() {
-  return (
-    <div className="w-full flex justify-center mt-6">
-      <div className="w-[80%] bg-white shadow-lg rounded-full px-10 py-4 flex items-center justify-between">
+  const location = useLocation();
 
-        {/* Left Logo */}
-        <Link to="/feed" className="text-xl font-bold">
-          TalentBridge
+  // ✅ Logged-in user info
+  const userInfo =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("userInfo") || "null")
+      : null;
+
+  // ✅ Profile Initial
+  const initial =
+    userInfo?.fullName
+      ? userInfo.fullName.trim()[0].toUpperCase()
+      : "U";
+
+  const profilePath = userInfo ? `/profile/${userInfo._id}` : "/";
+
+  // ✅ Active Write Page
+  const isWritePage = location.pathname === "/write";
+
+  return (
+    <div className="w-full flex justify-center pt-9 bg-[#1C1D25]">
+      <div
+        className="
+          w-[90%]
+          px-10 py-3
+          flex items-center justify-between
+          rounded-full
+          bg-[#2B2D38]
+          border border-white/10
+          shadow-lg
+        "
+      >
+        {/* 🌟 Logo */}
+        <Link
+          to="/feed"
+          className="text-2xl font-bold text-white tracking-wide"
+        >
+          Talent<span className="text-[#4BA9FF]">Bridge</span>
         </Link>
 
-        {/* Middle Links */}
-        <div className="flex gap-8 text-gray-600 font-medium">
-
-          <NavLink
-            to="/feed"
-            className={({ isActive }) =>
-              isActive ? "text-black font-semibold underline" : ""
-            }
-          >
-            Home
-          </NavLink>
-
-          <NavLink
-            to="/podcasts"
-            className={({ isActive }) =>
-              isActive ? "text-black font-semibold underline" : ""
-            }
-          >
-            Podcasts
-          </NavLink>
-
-          <NavLink
-            to="/knowledge"
-            className={({ isActive }) =>
-              isActive ? "text-black font-semibold underline" : ""
-            }
-          >
-            Knowledge Hub
-          </NavLink>
-
-          <NavLink
-            to="/activity"
-            className={({ isActive }) =>
-              isActive ? "text-black font-semibold underline" : ""
-            }
-          >
-            Activity
-          </NavLink>
+        {/* 🔗 Nav Links */}
+        <div className="flex gap-12 text-sm font-medium">
+          {[
+            { path: "/feed", label: "Home" },
+            { path: "/podcasts", label: "Podcasts" },
+            { path: "/knowledge", label: "Knowledge Hub" },
+            { path: "/activity", label: "Activity" },
+          ].map((link) => (
+            <NavLink
+              key={link.path}
+              to={link.path}
+              className={({ isActive }) =>
+                isActive
+                  ? "text-[#7FE6C5] font-semibold"
+                  : "text-gray-400 hover:text-white transition"
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
         </div>
 
-        {/* Right Buttons */}
+        {/* ⚡ Right Side */}
         <div className="flex items-center gap-4">
-
+          
           {/* Write Button */}
           <Link
             to="/write"
-            className="bg-black text-white px-6 py-2 rounded-full font-semibold"
+            className={`
+              px-6 py-2 rounded-full font-semibold
+              text-black transition
+              ${
+                isWritePage
+                  ? "bg-[#F5C76A]" // Active Yellow
+                  : "bg-[#4BA9FF] hover:opacity-90" // Default Blue
+              }
+            `}
           >
             Write
           </Link>
 
           {/* Profile Circle */}
-          {(() => {
-            const userInfo = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('userInfo') || 'null') : null;
-            const initial = userInfo?.fullName?.[0]?.toUpperCase() || 'Q';
-            const profilePath = userInfo ? `/profile/${userInfo._id}` : '/';
-            return (
-              <Link to={profilePath} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 font-bold">
-                {initial}
-              </Link>
-            );
-          })()}
+          <Link
+            to={profilePath}
+            className="
+              w-10 h-10 flex items-center justify-center
+              rounded-full
+              bg-[#B9A6FF]
+              text-black font-bold
+              hover:opacity-90
+              transition
+            "
+          >
+            {initial}
+          </Link>
         </div>
       </div>
     </div>

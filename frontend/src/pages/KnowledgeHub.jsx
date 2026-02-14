@@ -1,61 +1,55 @@
-import { useState, useEffect } from 'react';
-import Navbar from '../components/layout/Navbar';
-import PostCard from '../components/posts/PostCard';
-import { searchPosts, getTags } from '../api/axios';
+import { useState, useEffect } from "react";
+import Navbar from "../components/layout/Navbar";
+import PostCard from "../components/layout/PostCard";
+import { searchPosts, getTags } from "../api/axios";
 
 export default function KnowledgeHub() {
-  // State variables
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
   const [tags, setTags] = useState([]);
   const [results, setResults] = useState([]);
-  const [contentType, setContentType] = useState('all');
+  const [contentType, setContentType] = useState("all");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [debounceTimer, setDebounceTimer] = useState(null);
+  const [error, setError] = useState("");
 
-  // Fetch tags on component mount
+  // Fetch tags
   useEffect(() => {
     const fetchTags = async () => {
       try {
         const tagsData = await getTags();
         setTags(Array.isArray(tagsData) ? tagsData : []);
       } catch (err) {
-        console.error('Error fetching tags:', err);
-        setError('Failed to load tags');
+        console.error("Error fetching tags:", err);
+        setError("Failed to load tags");
       }
     };
     fetchTags();
   }, []);
 
-  // Search and filter posts with debouncing
+  // Debounced Search
   useEffect(() => {
-    // Clear previous timer
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-
-    // Set new timer for debounced search (300ms)
     const timer = setTimeout(async () => {
       setLoading(true);
-      setError('');
+      setError("");
+
       try {
         const response = await searchPosts(
           searchQuery,
           selectedTags,
-          contentType !== 'all' ? contentType : ''
+          contentType !== "all" ? contentType : ""
         );
-        setResults(Array.isArray(response) ? response : (response.results || []));
+
+        setResults(
+          Array.isArray(response) ? response : response.results || []
+        );
       } catch (err) {
-        console.error('Error searching posts:', err);
-        setError('Failed to search posts. Please try again.');
+        console.error("Error searching posts:", err);
+        setError("Failed to search posts. Please try again.");
         setResults([]);
       } finally {
         setLoading(false);
       }
-    }, 300);
-
-    setDebounceTimer(timer);
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [searchQuery, selectedTags, contentType]);
@@ -69,120 +63,157 @@ export default function KnowledgeHub() {
     );
   };
 
-  // Change content type filter
-  const handleContentTypeChange = (type) => {
-    setContentType(type);
-  };
-
   const contentTypes = [
-    { label: 'All', value: 'all' },
-    { label: 'Reflection', value: 'reflection' },
-    { label: 'Anonymous', value: 'anonymous' },
-    { label: 'Podcast', value: 'podcast' },
+    { label: "All", value: "all" },
+    { label: "Reflection", value: "reflection" },
+    { label: "Anonymous", value: "anonymous" },
+    { label: "Podcast", value: "podcast" },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
+    <div className="min-h-screen bg-[#1C1D25] text-white">
+      
 
-      <div className="max-w-7xl mx-auto grid grid-cols-4 gap-6 p-6 mt-6">
-        {/* Left Sidebar */}
-        <div className="col-span-1">
-          {/* Tags Section */}
-          <div className="bg-white shadow rounded-2xl p-5 mb-6">
-            <h3 className="font-bold text-lg mb-4">Tags</h3>
-            <div className="space-y-2">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 px-6 py-8">
+
+        {/* LEFT SIDEBAR */}
+        <div className="lg:col-span-1 space-y-6">
+
+          {/* TAGS */}
+          <div className="relative bg-[#242631] rounded-2xl p-5 border border-white/10 shadow-md overflow-hidden">
+            <div className="absolute left-0 top-0 h-full w-[6px] bg-[#7FE6C5]" />
+
+            <h3 className="text-lg font-bold mb-4 pl-3">Tags</h3>
+
+            <div className="space-y-2 pl-3">
               {tags.length > 0 ? (
-                tags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition ${
-                      selectedTags.includes(tag)
-                        ? 'bg-blue-500 text-white font-semibold'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))
+                tags.map((tag, index) => {
+                  const pastel =
+                    ["#7FE6C5", "#4BA9FF", "#F5C76A", "#F28B82", "#B9A6FF"][
+                      index % 5
+                    ];
+
+                  const active = selectedTags.includes(tag);
+
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className="w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition"
+                      style={{
+                        backgroundColor: active ? pastel : "#1C1D25",
+                        color: active ? "black" : "white",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })
               ) : (
-                <p className="text-gray-500 text-sm">No tags available</p>
+                <p className="text-gray-500 text-sm">
+                  No tags available
+                </p>
               )}
             </div>
           </div>
 
-          {/* Content Type Filter */}
-          <div className="bg-white shadow rounded-2xl p-5">
-            <h3 className="font-bold text-lg mb-4">Content Type</h3>
-            <div className="space-y-2">
-              {contentTypes.map((type) => (
-                <button
-                  key={type.value}
-                  onClick={() => handleContentTypeChange(type.value)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition ${
-                    contentType === type.value
-                      ? 'bg-blue-500 text-white font-semibold'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {type.label}
-                </button>
-              ))}
+          {/* CONTENT TYPE */}
+          <div className="relative bg-[#242631] rounded-2xl p-5 border border-white/10 shadow-md overflow-hidden">
+            <div className="absolute left-0 top-0 h-full w-[6px] bg-[#F5C76A]" />
+
+            <h3 className="text-lg font-bold mb-4 pl-3">
+              🎛 Content Type
+            </h3>
+
+            <div className="space-y-2 pl-3">
+              {contentTypes.map((type, index) => {
+                const pastel =
+                  ["#4BA9FF", "#B9A6FF", "#F28B82", "#7FE6C5"][
+                    index % 4
+                  ];
+
+                const active = contentType === type.value;
+
+                return (
+                  <button
+                    key={type.value}
+                    onClick={() => setContentType(type.value)}
+                    className="w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition"
+                    style={{
+                      backgroundColor: active ? pastel : "#1C1D25",
+                      color: active ? "black" : "white",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    {type.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Right Content Area */}
-        <div className="col-span-3">
-          <h1 className="text-4xl font-bold mb-6">📚 Knowledge Hub</h1>
+        {/* RIGHT CONTENT */}
+        <div className="lg:col-span-3 space-y-6">
 
-          {/* Search Input */}
+          {/* TITLE */}
+          <h1 className="text-4xl font-bold">
+            Knowledge Hub
+          </h1>
+
+          <p className="text-gray-400">
+            Search reflections, podcasts, and internal learnings across your org.
+          </p>
+
+          {/* SEARCH BAR */}
           <input
             type="text"
             placeholder="Search insights..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-4 border border-gray-300 rounded-xl mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-[#242631] border border-white/10 rounded-xl px-5 py-4 text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4BA9FF]"
           />
 
-          {/* Results Summary */}
+          {/* RESULTS SUMMARY */}
           {!loading && results.length > 0 && (
-            <p className="text-gray-600 mb-4 font-medium">
-              Showing {results.length} result{results.length !== 1 ? 's' : ''}{' '}
-              {searchQuery && `for "${searchQuery}"`}
-              {selectedTags.length > 0 && ` with tags: ${selectedTags.join(', ')}`}
+            <p className="text-gray-400 text-sm">
+              Showing{" "}
+              <span className="text-white font-semibold">
+                {results.length}
+              </span>{" "}
+              results
             </p>
           )}
 
-          {/* Loading State */}
+          {/* LOADING */}
           {loading && (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">Searching...</p>
-            </div>
-          )}
-
-          {/* Error State */}
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
-              {error}
-            </div>
-          )}
-
-          {/* Results */}
-          {!loading && results.length === 0 && !error && (
-            <div className="text-center py-12 bg-white shadow rounded-2xl">
-              <p className="text-gray-500 text-lg">
-                {searchQuery || selectedTags.length > 0
-                  ? 'No results found. Try adjusting your filters.'
-                  : 'Start searching or select tags to explore content.'}
+              <p className="text-gray-400 italic">
+                Searching knowledge vault...
               </p>
             </div>
           )}
 
-          {/* Search Results Grid */}
+          {/* ERROR */}
+          {error && (
+            <div className="bg-[#F28B82]/20 border border-[#F28B82] text-[#F28B82] px-4 py-3 rounded-xl">
+              {error}
+            </div>
+          )}
+
+          {/* EMPTY */}
+          {!loading && results.length === 0 && !error && (
+            <div className="bg-[#242631] border border-white/10 rounded-2xl p-10 text-center">
+              <p className="text-gray-400 italic">
+                No results found. Try adjusting filters ✨
+              </p>
+            </div>
+          )}
+
+          {/* RESULTS */}
           {!loading && results.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {results.map((post) => (
                 <PostCard key={post._id || post.id} post={post} />
               ))}

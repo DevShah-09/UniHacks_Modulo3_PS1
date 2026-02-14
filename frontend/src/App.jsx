@@ -3,8 +3,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
 
 import Feed from "./pages/Feed";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
 import Write from "./pages/Write";
 import PostDetail from "./pages/PostDetail";
 import Podcasts from "./pages/Podcasts";
@@ -13,7 +11,7 @@ import PodcastDetail from "./pages/PodcastDetail";
 import KnowledgeHub from "./pages/KnowledgeHub";
 import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
-
+import Auth from "./pages/Auth";
 import { useEffect } from "react";
 import api from "./api/axios";
 
@@ -23,8 +21,11 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* ✅ AUTH PAGES (No Navbar) */}
-        <Route path="/" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/" element={<Auth />} />
+        <Route path="/login" element={<Auth />} />
+        <Route path="/signup" element={<Auth />} />
+        {/* <Route path="/" element={<Login />} />
+        <Route path="/signup" element={<Signup />} /> */}
 
         {/* ✅ MAIN APP PAGES (With Navbar) */}
         <Route

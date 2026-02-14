@@ -5,9 +5,11 @@ import Navbar from "../components/layout/Navbar";
 
 export default function Write() {
   const navigate = useNavigate();
+
   const [contentType, setContentType] = useState("Reflection");
   const [safetyLevel, setSafetyLevel] = useState(1);
   const [content, setContent] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const [error, setError] = useState("");
@@ -16,6 +18,7 @@ export default function Write() {
   const [liveAiFeedback, setLiveAiFeedback] = useState({});
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState("");
+
   const debounceTimer = useRef(null);
 
   const [selectedPersona, setSelectedPersona] = useState("mentor");
@@ -26,50 +29,43 @@ export default function Write() {
     { key: "strategist", label: "Strategist", icon: "📈" },
     { key: "executionManager", label: "Execution Manager", icon: "🎯" },
     { key: "riskEvaluator", label: "Risk Evaluator", icon: "⚖️" },
-    { key: "innovator", label: "Innovator", icon: "💡" }
+    { key: "innovator", label: "Innovator", icon: "💡" },
   ];
 
-  // Local client-side fallback for persona feedback (used when backend fails or returns empty)
-  const localPersonaFallback = (text) => {
-    const snippet = (text || '').trim().split(/[\.\!\?]/)[0].slice(0, 120);
-    const summary = snippet || 'Brief reflection';
-    return {
-      summary,
-      mentor: `Thanks for sharing — this highlights an important issue. Consider framing the next step and the desired outcome.`,
-      critic: `The post would benefit from clearer evidence and measurable outcomes; clarify the root cause.`,
-      strategist: `Think about how this fits the longer-term roadmap and what success will look like in 3–6 months.`,
-      executionManager: `Turn this into 1–2 concrete actions with owners and deadlines to make progress immediately.`,
-      riskEvaluator: `Be mindful of potential morale and delivery risks; pilot changes incrementally.`,
-      innovator: `Experiment with small alternative approaches (A/B test or short pilot) to validate assumptions.`
-    };
-  };
+  // Pastel Accent Palette
+  const accentColors = [
+    "#7FE6C5", // Mint
+    "#4BA9FF", // Sky Blue
+    "#F5C76A", // Gold
+    "#F28B82", // Coral Pink
+    "#B9A6FF", // Lavender
+    "#7FE6C5",
+  ];
 
-  const localRefineFallback = (rant) => {
-    // Light-weight client-side refine (keeps app usable offline)
-    let t = (rant || '').trim();
-    t = t.replace(/\s+/g, ' ');
-    t = t.replace(/\b(hate|terrible|stupid|idiot)\b/gi, (m) => {
-      const map = { hate: 'strongly dislike', terrible: 'concerning', stupid: 'not effective', idiot: 'uninformed' };
-      return map[m.toLowerCase()] || m;
-    });
-    if (!/^I\b|^My\b|^We\b/i.test(t)) {
-      t = 'I noticed that ' + t.charAt(0).toLowerCase() + t.slice(1);
-    }
-    if (!/(suggest|recommend|could|should)/i.test(t)) {
-      t = t + ' I would suggest discussing possible improvements and next steps.';
-    }
-    return t.charAt(0).toUpperCase() + t.slice(1);
-  };
+  // Local fallback feedback
+  const localPersonaFallback = () => ({
+    mentor:
+      "This is a valuable reflection. Try adding what outcome you want next.",
+    critic:
+      "This could be clearer with more evidence or examples. What caused this?",
+    strategist:
+      "Think about how this connects to long-term goals and future planning.",
+    executionManager:
+      "Convert this into 1–2 actionable steps with owners and deadlines.",
+    riskEvaluator:
+      "Consider risks like morale or delivery impact. Try small pilots first.",
+    innovator:
+      "Try experimenting with alternative approaches and validate assumptions.",
+  });
 
-  // Cleanup debounce timer on unmount
+  // Cleanup debounce timer
   useEffect(() => {
     return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
   }, []);
 
+  // Generate Live Feedback
   const generateLiveFeedback = async (currentContent) => {
     if (currentContent.trim().length <= 50) {
       setLiveAiFeedback({});
@@ -83,103 +79,72 @@ export default function Write() {
     try {
       const response = await api.post("/refine", {
         rant: currentContent,
-        getFeedback: true // Flag to request all persona feedback
+        getFeedback: true,
       });
 
-      // Prefer backend feedback when available; fall back to local generator otherwise
       const remote = response.data?.aiFeedback || {};
-      const hasRemote = Object.values(remote).some(v => v && String(v).trim().length > 0);
+      const hasRemote = Object.values(remote).some(
+        (v) => v && String(v).trim().length > 0
+      );
+
       if (hasRemote) {
         setLiveAiFeedback(remote);
       } else {
-        setLiveAiFeedback(localPersonaFallback(currentContent));
-        setFeedbackError('Using local fallback persona feedback');
+        setLiveAiFeedback(localPersonaFallback());
       }
-    } catch (err) {
-      console.error("Feedback generation error:", err);
-      setFeedbackError("Failed to generate feedback from server — using local fallback");
-      setLiveAiFeedback(localPersonaFallback(currentContent));
+    } catch {
+      setLiveAiFeedback(localPersonaFallback());
+      setFeedbackError("Server failed — using fallback feedback");
     } finally {
       setFeedbackLoading(false);
     }
   };
 
+  // Debounced typing
   const handleContentChange = (e) => {
     const newContent = e.target.value;
     setContent(newContent);
 
-    // Clear existing debounce timer
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
-    // Set new debounce timer - wait 1 second after user stops typing
     debounceTimer.current = setTimeout(() => {
       generateLiveFeedback(newContent);
     }, 1000);
   };
 
+  // AI Refine
   const handleAiRefine = async () => {
-    if (!content.trim()) {
-      setError("Please write some content to refine.");
-      return;
-    }
+    if (!content.trim()) return;
 
     setIsRefining(true);
-    setError("");
 
     try {
       const response = await api.post("/refine", { rant: content });
-      const refined = response.data?.refinedText;
-
-      if (refined && String(refined).trim().length > 0) {
-        setContent(refined);
-        // Re-generate feedback with refined content
-        generateLiveFeedback(refined);
-      } else {
-        // Server returned no refinedText — use local fallback so the button is responsive
-        const local = localRefineFallback(content);
-        setContent(local);
-        generateLiveFeedback(local);
-        setFeedbackError('Using local fallback for refinement');
-      }
-    } catch (err) {
-      console.error("Refine error:", err);
-      // Use local fallback so feature still works when server is unreachable
-      const local = localRefineFallback(content);
-      setContent(local);
-      generateLiveFeedback(local);
-      setError('Server refine failed; applied local fallback.');
+      setContent(response.data?.refinedText || content);
+    } catch {
+      setError("Refine failed.");
     } finally {
       setIsRefining(false);
     }
   };
 
+  // Publish Post
   const handlePublish = async () => {
-    if (!content.trim()) {
-      setError("Please write some content before publishing.");
-      return;
-    }
+    if (!content.trim()) return;
 
     setLoading(true);
-    setError("");
 
     try {
-      const title = `${contentType} - ${new Date().toLocaleDateString()}`;
-
       const response = await api.post("/posts", {
-        title,
+        title: `${contentType} - ${new Date().toLocaleDateString()}`,
         content,
-        anonymityLevel: parseInt(safetyLevel),
+        anonymityLevel: safetyLevel,
         tags: [contentType],
-        summary: `A ${contentType.toLowerCase()} posted on ${new Date().toLocaleDateString()}`
       });
 
-      // Navigate directly to the new post
       navigate(`/posts/${response.data._id}`);
-    } catch (err) {
-      console.error("Publish error:", err);
-      setError(err.response?.data?.message || "Failed to publish. Please try again.");
+    } catch {
+      setError("Failed to publish post.");
     } finally {
       setLoading(false);
     }
@@ -187,121 +152,164 @@ export default function Write() {
 
   return (
     <>
-      <Navbar />
-      {/* Write Form View with Split Layout (Editor + Live Feedback) */}
-      <div className="max-w-7xl mx-auto mt-10 p-6">
-        <h1 className="text-3xl font-bold mb-6">✍️ Write Reflection</h1>
 
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
-            <span className="block sm:inline">{error}</span>
-          </div>
-        )}
+      <div className="h-[calc(100vh-90px)] bg-[#1C1D25] text-white px-6 py-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Side - Editor */}
-          <div className="lg:col-span-1">
-            {/* Content Type */}
-            <select
-              className="w-full p-3 border rounded-xl mb-5"
-              value={contentType}
-              onChange={(e) => setContentType(e.target.value)}
-            >
-              <option>Reflection</option>
-              <option>Team Update</option>
-              <option>Decision Log</option>
-              <option>Experiment Outcome</option>
-              <option>Blog Post</option>
-            </select>
+          {/* LEFT EDITOR */}
+          <div className="bg-[#2A2C38] rounded-2xl p-6 border border-white/5 shadow-md">
 
-            {/* Safety Slider */}
+            <h1 className="text-2xl font-semibold mb-6">
+             Write Reflection
+            </h1>
+
+            {/* Slider */}
             <div className="mb-6">
-              <p className="font-semibold mb-2">Psychological Safety Level</p>
+              <p className="text-sm mb-2 text-gray-300">
+                Psychological Safety Level
+              </p>
+
               <input
                 type="range"
                 min="1"
                 max="3"
-                className="w-full"
                 value={safetyLevel}
                 onChange={(e) => setSafetyLevel(parseInt(e.target.value))}
+                className="w-full accent-[#7FE6C5]"
               />
-              <p className="text-gray-500 text-sm mt-2">
-                1 = Full Name • 2 = Department • 3 = Anonymous Thought
-              </p>
-            </div>
 
-            {/* Editor */}
-            <textarea
-              placeholder="Write your thoughts..."
-              className="w-full h-80 p-4 border rounded-xl mb-4 font-mono text-sm"
-              value={content}
-              onChange={handleContentChange}
-            />
-
-            {/* AI Rewrite */}
-            <button
-              className="px-5 py-2 bg-purple-100 rounded-xl font-semibold mr-3 disabled:opacity-50 hover:bg-purple-200 transition-colors"
-              onClick={handleAiRefine}
-              disabled={isRefining || loading || content.trim().length === 0}
-            >
-              {isRefining ? "✨ Refining..." : "✨ Make this constructive"}
-            </button>
-
-            {/* Publish */}
-            <button
-              className="px-6 py-2 bg-black text-white rounded-xl font-semibold disabled:opacity-50 hover:bg-gray-800 transition-colors"
-              onClick={handlePublish}
-              disabled={loading || isRefining || content.trim().length === 0}
-            >
-              {loading ? "Publishing..." : "Publish →"}
-            </button>
-          </div>
-
-          {/* Right Side - Live AI Feedback Panel */}
-          <div className="lg:col-span-2">
-            {/* Persona Selection Buttons */}
-            <div className="mb-6">
-              <h3 className="text-lg font-bold mb-3">AI Personas</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {personas.map((persona) => (
-                  <button
-                    key={persona.key}
-                    onClick={() => setSelectedPersona(persona.key)}
-                    className={`p-3 rounded-lg font-semibold transition-all ${selectedPersona === persona.key
-                      ? "bg-black text-white shadow-lg transform scale-105"
-                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                      }`}
-                  >
-                    <span className="text-xl block mb-1">{persona.icon}</span>
-                    <span className="text-xs sm:text-sm">{persona.label}</span>
-                  </button>
-                ))}
+              <div className="flex justify-between text-xs text-gray-400 mt-2 px-1">
+                <span>1</span>
+                <span>2</span>
+                <span>3</span>
               </div>
             </div>
 
-            {/* Feedback Content */}
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 h-full">
-              <h3 className="text-xl font-bold mb-4">
-                {personas.find((p) => p.key === selectedPersona)?.icon} {personas.find((p) => p.key === selectedPersona)?.label}
-              </h3>
-              <div className="bg-white border rounded-lg p-4 min-h-96 max-h-96 overflow-y-auto">
-                {content.trim().length <= 50 ? (
-                  <p className="text-gray-400 italic">✍️ Write 50+ characters to see feedback</p>
-                ) : feedbackLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-                      <p className="text-gray-600">Generating feedback...</p>
-                    </div>
-                  </div>
-                ) : feedbackError ? (
-                  <p className="text-red-600 text-sm">{feedbackError}</p>
+            {/* Textarea */}
+            <textarea
+  placeholder="Write your thoughts..."
+  className="w-full h-52 bg-[#1C1D25] 
+  border border-white/10 rounded-xl 
+  p-4 text-gray-200 text-sm resize-none 
+  mt-4"
+  value={content}
+  onChange={handleContentChange}
+/>
+
+
+          {/* Buttons */}
+<div className="flex justify-between gap-5 mt-8 w-full">
+
+  {/* Make Constructive (Pastel Pink) */}
+  <button
+    onClick={handleAiRefine}
+    disabled={isRefining}
+    className="w-1/2 py-3 rounded-lg font-semibold text-sm 
+    transition disabled:opacity-50"
+    style={{
+      backgroundColor: "#F28B82",
+      color: "black",
+    }}
+  >
+    {isRefining ? "Refining..." : "Make Constructive"}
+  </button>
+
+  {/* Publish (Pastel Yellow) */}
+  <button
+    onClick={handlePublish}
+    disabled={loading}
+    className="w-1/2 py-3 rounded-lg font-semibold text-sm 
+    transition disabled:opacity-50"
+    style={{
+      backgroundColor: "#F5C76A",
+      color: "black",
+    }}
+  >
+    {loading ? "Publishing..." : " Publish"}
+  </button>
+
+
+</div>
+
+
+            {error && (
+              <p className="text-red-400 text-sm mt-4">{error}</p>
+            )}
+          </div>
+
+          {/* RIGHT SIDE */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Persona Selector */}
+            <div className="bg-[#2A2C38] rounded-2xl p-6 border border-white/5 shadow-md">
+              <h2 className="text-lg font-semibold mb-5">
+                AI Personas
+              </h2>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {personas.map((p, index) => {
+                  const accent = accentColors[index];
+                  const isActive = selectedPersona === p.key;
+
+                  return (
+                    <button
+                      key={p.key}
+                      onClick={() => setSelectedPersona(p.key)}
+                      className="relative flex flex-col items-center justify-center 
+                      h-[85px] w-full border border-white/10 transition-all duration-200"
+                      style={{
+                        borderRadius: "12px",
+                        backgroundColor: isActive ? accent : "#242631",
+                        color: isActive ? "black" : "white",
+                      }}
+                    >
+                      {/* Accent Strip */}
+                      <div
+                        className="absolute left-0 top-0 h-full w-[6px]"
+                        style={{
+                          backgroundColor: accent,
+                          borderRadius: "12px 0 0 12px",
+                        }}
+                      />
+
+                      <div className="text-xl mb-1">{p.icon}</div>
+                      <span className="text-sm font-semibold">
+                        {p.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Feedback Box */}
+            <div className="bg-[#2A2C38] rounded-2xl p-6 border border-white/5 shadow-md w-full">
+              <h2 className="text-lg font-semibold mb-4">
+                {personas.find((p) => p.key === selectedPersona)?.label} Feedback
+              </h2>
+
+              <div
+                className="w-full bg-[#1C1D25] border border-white/10 rounded-xl 
+                p-6 min-h-[170px] text-gray-300 overflow-y-auto"
+              >
+                {feedbackLoading ? (
+                  <p className="text-gray-400 italic">
+                    Generating feedback...
+                  </p>
+                ) : liveAiFeedback[selectedPersona] ? (
+                  liveAiFeedback[selectedPersona]
                 ) : (
-                  <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                    {liveAiFeedback[selectedPersona] || "No feedback available yet"}
+                  <p className="italic text-gray-500">
+                    Write 50+ characters to see AI feedback...
                   </p>
                 )}
               </div>
+
+              {feedbackError && (
+                <p className="text-red-400 text-sm mt-3 italic">
+                  {feedbackError}
+                </p>
+              )}
             </div>
           </div>
         </div>
