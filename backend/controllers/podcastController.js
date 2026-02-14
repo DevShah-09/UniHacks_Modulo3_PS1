@@ -24,8 +24,8 @@ const uploadPodcast = async (req, res) => {
       return res.status(400).json({ message: 'Audio file is required' });
     }
 
-    // Create audio URL path
-    const audioUrl = `/uploads/audio/${req.file.filename}`;
+    // Create audio URL path (files are saved in uploads/media by uploadMiddleware)
+    const audioUrl = `/uploads/media/${req.file.filename}`;
 
     const podcast = new Podcast({
       title,
@@ -275,6 +275,25 @@ const transcribePodcast = async (req, res) => {
   }
 };
 
+const getUserPodcasts = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const query = {
+      author: userId,
+      organization: req.organization
+    };
+
+    const podcasts = await Podcast.find(query)
+      .populate('author', 'fullName email department')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(podcasts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   uploadPodcast,
   getPodcasts,
@@ -282,5 +301,6 @@ module.exports = {
   updatePodcast,
   deletePodcast,
   searchPodcasts,
-  transcribePodcast
+  transcribePodcast,
+  getUserPodcasts
 };

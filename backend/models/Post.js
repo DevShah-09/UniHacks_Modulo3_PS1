@@ -43,6 +43,23 @@ const postSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     }],
+    // Voting (upvote / downvote) - maintain counters for fast reads
+    upvoteCount: {
+        type: Number,
+        default: 0,
+        index: true
+    },
+    downvoteCount: {
+        type: Number,
+        default: 0,
+        index: true
+    },
+    // Cached net score (upvotes - downvotes) to help sorting/trending
+    score: {
+        type: Number,
+        default: 0,
+        index: true
+    },
     aiFeedback: {
         mentor: {
             type: String

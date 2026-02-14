@@ -19,6 +19,17 @@ const commentSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Organization',
         required: true
+    },
+    // Comment reactions (cached counters for fast reads)
+    likeCount: {
+        type: Number,
+        default: 0,
+        index: true
+    },
+    dislikeCount: {
+        type: Number,
+        default: 0,
+        index: true
     }
 }, {
     timestamps: true

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createPost, getPosts, getPost, updatePost, deletePost, getPerspectives, getSentiment, getRelatedPosts, toggleLike, regenerateAiFeedback } = require('../controllers/postController');
+const { createPost, getPosts, getPost, updatePost, deletePost, getPerspectives, getSentiment, getRelatedPosts, toggleLike, voteOnPost, regenerateAiFeedback, getUserPosts, getTrendingPosts } = require('../controllers/postController');
 const { protect } = require('../middleware/authMiddleware');
 const { ensureOrgMember } = require('../middleware/orgScopeMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -12,12 +12,21 @@ router.use(ensureOrgMember);
 // POST /api/posts - Create a new post
 router.post('/', upload.single('media'), createPost);
 
+// GET /api/posts/user/:userId - Get posts for a specific user
+router.get('/user/:userId', getUserPosts);
+
 // GET /api/posts - Get all posts in organization
 router.get('/', getPosts);
+
+// GET /api/posts/trending - Trending posts for organization
+router.get('/trending', getTrendingPosts);
 
 // Get specific post features (must come before /:postId route)
 // POST /api/posts/:postId/like - Toggle like/unlike
 router.post('/:postId/like', toggleLike);
+
+// POST /api/posts/:postId/vote - Upvote / Downvote / Remove vote
+router.post('/:postId/vote', voteOnPost);
 
 // POST /api/posts/:postId/ai - Regenerate / persist AI feedback for a post
 router.post('/:postId/ai', regenerateAiFeedback);

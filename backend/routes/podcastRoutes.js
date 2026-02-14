@@ -7,7 +7,8 @@ const {
   updatePodcast,
   deletePodcast,
   searchPodcasts,
-  transcribePodcast
+  transcribePodcast,
+  getUserPodcasts
 } = require('../controllers/podcastController');
 const { protect } = require('../middleware/authMiddleware');
 const { ensureOrgMember } = require('../middleware/orgScopeMiddleware');
@@ -19,6 +20,9 @@ router.use(ensureOrgMember);
 
 // POST /api/podcasts - Upload a new podcast
 router.post('/', upload.single('audio'), uploadPodcast);
+
+// GET /api/podcasts/user/:userId - Get podcasts for a specific user
+router.get('/user/:userId', getUserPodcasts);
 
 // GET /api/podcasts - Get all podcasts in organization
 router.get('/', getPodcasts);

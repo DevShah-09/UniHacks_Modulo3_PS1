@@ -53,18 +53,49 @@ const searchPosts = async (req, res) => {
 
     console.log('🔎 [searchPosts] filter:', JSON.stringify(searchFilter));
 
-    const posts = await Post.find(searchFilter)
-      .populate('author', 'fullName email department')
-      .sort({ createdAt: -1 });
+    let posts = [];
+    const { sortBy } = req.query;
+
+    if (sortBy === 'upvotes') {
+      // Use aggregation for likes count sorting
+      posts = await Post.aggregate([
+        { $match: searchFilter },
+        {
+          $addFields: {
+            likesCount: { $size: { $ifNull: ['$likes', []] } }
+          }
+        },
+        { $sort: { likesCount: -1, createdAt: -1 } },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'author',
+            foreignField: '_id',
+            as: 'author'
+          }
+        },
+        { $unwind: '$author' } // Convert array to object
+      ]);
+    } else {
+      // Standard find for other sorts
+      let sortOption = { createdAt: -1 }; // default latest
+      if (sortBy === 'oldest') {
+        sortOption = { createdAt: 1 };
+      }
+
+      posts = await Post.find(searchFilter)
+        .populate('author', 'fullName email department')
+        .sort(sortOption);
+    }
 
     // Filter author information based on anonymityLevel
     const filteredPosts = posts.map(post => {
-      const postObj = post.toObject();
+      const postObj = typeof post.toObject === 'function' ? post.toObject() : post;
 
-      if (post.anonymityLevel === 3) {
+      if (postObj.anonymityLevel === 3) {
         postObj.author = {
-          _id: post.author._id,
-          email: post.author.email
+          _id: postObj.author._id,
+          email: postObj.author.email
         };
       }
 

@@ -27,20 +27,17 @@ const analyzePost = async (postContent) => {
 
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
-    const prompt = `You are an expert team of advisors. Analyze the following company reflection post and provide feedback from 5 different personas in JSON format.
+    const prompt = `You are an expert team of advisors. Analyze the following company reflection post and provide feedback from 3 different personas in JSON format.
 
 Post Content:
 "${postContent}"
 
-Provide your response as a valid JSON object with exactly these seven fields (keep responses concise, 1-2 sentences each):
+Provide your response as a valid JSON object with exactly these four fields (keep responses concise, 1-2 sentences each):
 {
   "summary": "A concise 5-6 word topic summary of the post (e.g., 'Strategies for Remote Team Alignment')",
-  "mentorFeedback": "A supportive and encouraging comment acknowledging the reflection's value",
-  "criticFeedback": "A logical critique pointing out potential risks or areas to reconsider",
-  "strategistFeedback": "Strategic implications and long-term thinking perspective",
-  "executionManagerFeedback": "Practical advice on how to implement or action this reflection",
-  "riskEvaluatorFeedback": "Potential risks, downsides, or unintended consequences",
-  "innovatorFeedback": "Creative ideas to build on this reflection or new perspectives"
+  "innovatorFeedback": "Creative ideas to build on this reflection or new perspectives to experiment with",
+  "riskEvaluatorFeedback": "Potential risks, downsides, or unintended consequences to consider",
+  "strategistFeedback": "Strategic implications and long-term thinking perspective for business impact"
 }
 
 Return ONLY the JSON object, no additional text.`;
@@ -64,24 +61,18 @@ Return ONLY the JSON object, no additional text.`;
 
     return {
       summary: feedbackData.summary || '',
-      mentor: feedbackData.mentorFeedback || '',
-      critic: feedbackData.criticFeedback || '',
-      strategist: feedbackData.strategistFeedback || '',
-      executionManager: feedbackData.executionManagerFeedback || '',
+      innovator: feedbackData.innovatorFeedback || '',
       riskEvaluator: feedbackData.riskEvaluatorFeedback || '',
-      innovator: feedbackData.innovatorFeedback || ''
+      strategist: feedbackData.strategistFeedback || ''
     };
   } catch (error) {
     console.error('Error analyzing post with AI:', error.message);
     // Return empty feedback on error to prevent route failure
     return {
       summary: '',
-      mentor: '',
-      critic: '',
-      strategist: '',
-      executionManager: '',
+      innovator: '',
       riskEvaluator: '',
-      innovator: ''
+      strategist: ''
     };
   }
 };

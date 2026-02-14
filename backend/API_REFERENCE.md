@@ -99,6 +99,34 @@ Response: [
 ]
 ```
 
+### Get Trending Posts (Org-scoped)
+```bash
+GET /posts/trending?limit=5
+Authorization: Bearer {token}
+
+Query Parameters:
+- limit: number of top items to return (default 5, max 20)
+
+Response: [
+  { _id, title, summary, upvoteCount, downvoteCount, commentsCount, createdAt, score, votesScore },
+  ...
+]
+```
+
+### Vote on a Post
+```bash
+POST /posts/:postId/vote
+Content-Type: application/json
+Authorization: Bearer {token}
+
+Body:
+{ "voteType": "upvote" | "downvote" | "remove" }
+
+Response:
+{ "userVote": "upvote" | "downvote" | null, "upvoteCount": number, "downvoteCount": number, "score": number }
+```
+
+
 ### Get Single Post
 ```bash
 GET /posts/:postId
@@ -159,9 +187,22 @@ GET /comments/:postId
 Authorization: Bearer {token}
 
 Response: [
-  { _id, content, author, createdAt, ... },
+  { _id, content, author, likeCount, dislikeCount, currentUserReaction, createdAt, ... },
   ...
 ]
+```
+
+### React to a Comment
+```bash
+POST /comments/:commentId/reaction
+Content-Type: application/json
+Authorization: Bearer {token}
+
+Body:
+{ "reactionType": "like" | "dislike" | "remove" }
+
+Response:
+{ "userReaction": "like" | "dislike" | null, "likeCount": number, "dislikeCount": number }
 ```
 
 ### Update Comment

@@ -17,6 +17,7 @@ const podcastRoutes = require('./routes/podcastRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const userRoutes = require('./routes/userRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 
 // Connect to Database
 connectDB();
@@ -41,6 +42,10 @@ app.use('/api/organizations', organizationRoutes);
 app.use('/api/podcasts', podcastRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/users', userRoutes);
+
+// Chat routes (conversations & messages) — require authentication + org scope in the router
+app.use('/api', chatRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

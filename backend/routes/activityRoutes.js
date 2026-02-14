@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
-const { getUnreadCount, clearUnreadCount } = require('../controllers/activityController');
+const { getActivities, getUnreadCount, clearUnreadCount } = require('../controllers/activityController');
+
+// GET /api/activity - Get recent activities
+router.get('/', protect, getActivities);
 
 // GET /api/activity/unread  -> { count }
 router.get('/unread', protect, getUnreadCount);
