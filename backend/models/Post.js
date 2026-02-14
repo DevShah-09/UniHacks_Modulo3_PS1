@@ -12,6 +12,13 @@ const postSchema = mongoose.Schema({
     summary: {
         type: String
     },
+    mediaUrl: {
+        type: String
+    },
+    mediaType: {
+        type: String,
+        enum: ['image', 'video']
+    },
     tags: [{
         type: String
     }],
@@ -33,8 +40,8 @@ const postSchema = mongoose.Schema({
     },
     // Likes: store references to users who liked this post
     likes: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }],
     aiFeedback: {
         mentor: {

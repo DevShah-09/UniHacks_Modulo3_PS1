@@ -9,6 +9,9 @@ export default function Write() {
   const [contentType, setContentType] = useState("Reflection");
   const [safetyLevel, setSafetyLevel] = useState(1);
   const [content, setContent] = useState("");
+  const [mediaFile, setMediaFile] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
@@ -128,6 +131,15 @@ export default function Write() {
     }
   };
 
+  // Handle File Selection
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setMediaFile(file);
+      setMediaPreview(URL.createObjectURL(file));
+    }
+  };
+
   // Publish Post
   const handlePublish = async () => {
     if (!content.trim()) return;
@@ -135,16 +147,24 @@ export default function Write() {
     setLoading(true);
 
     try {
-      const response = await api.post("/posts", {
-        title: `${contentType} - ${new Date().toLocaleDateString()}`,
-        content,
-        anonymityLevel: safetyLevel,
-        tags: [contentType],
+      const formData = new FormData();
+      formData.append("title", `${contentType} - ${new Date().toLocaleDateString()}`);
+      formData.append("content", content);
+      formData.append("anonymityLevel", safetyLevel);
+      formData.append("tags", [contentType]);
+      if (mediaFile) {
+        formData.append("media", mediaFile);
+      }
+
+      const response = await api.post("/posts", formData, {
+        headers: { "Content-Type": undefined },
       });
 
       navigate(`/posts/${response.data._id}`);
-    } catch {
-      setError("Failed to publish post.");
+    } catch (err) {
+      console.error("❌ Publish Error:", err);
+      console.error("❌ Response Data:", err.response?.data);
+      setError(err.response?.data?.message || "Failed to publish post.");
     } finally {
       setLoading(false);
     }
@@ -157,10 +177,10 @@ export default function Write() {
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* LEFT EDITOR */}
-          <div className="bg-[#2A2C38] rounded-2xl p-6 border border-white/5 shadow-md">
+          <div className="lg:col-span-2 bg-[#2A2C38] rounded-2xl p-6 border border-white/5 shadow-md">
 
             <h1 className="text-2xl font-semibold mb-6">
-             Write Reflection
+              Write Reflection
             </h1>
 
             {/* Slider */}
@@ -179,57 +199,110 @@ export default function Write() {
               />
 
               <div className="flex justify-between text-xs text-gray-400 mt-2 px-1">
-                <span>1</span>
-                <span>2</span>
-                <span>3</span>
+                <div className="flex flex-col items-center">
+                  <span className="font-bold">1</span>
+                  <span>Public</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="font-bold">2</span>
+                  <span>Team</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="font-bold">3</span>
+                  <span>Anonymous</span>
+                </div>
               </div>
             </div>
 
-            {/* Textarea */}
             <textarea
-  placeholder="Write your thoughts..."
-  className="w-full h-52 bg-[#1C1D25] 
+              placeholder="Write your thoughts..."
+              className="w-full h-52 bg-[#1C1D25] 
   border border-white/10 rounded-xl 
   p-4 text-gray-200 text-sm resize-none 
   mt-4"
-  value={content}
-  onChange={handleContentChange}
-/>
+              value={content}
+              onChange={handleContentChange}
+            />
+
+            {/* Media Upload & Preview */}
+            <div className="mt-4">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+                accept="image/*,video/*"
+              />
+
+              {mediaPreview ? (
+                <div className="relative w-fit mt-2">
+                  {mediaFile?.type.startsWith("video") ? (
+                    <video
+                      src={mediaPreview}
+                      controls
+                      className="max-h-40 rounded-lg border border-white/10"
+                    />
+                  ) : (
+                    <img
+                      src={mediaPreview}
+                      alt="Preview"
+                      className="max-h-40 rounded-lg border border-white/10"
+                    />
+                  )}
+                  <button
+                    onClick={() => {
+                      setMediaFile(null);
+                      setMediaPreview(null);
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current.click()}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1C1D25] border border-white/10 text-gray-300 hover:text-white hover:border-white/30 transition text-sm"
+                >
+                  ➕ Add Image / Video
+                </button>
+              )}
+            </div>
 
 
-          {/* Buttons */}
-<div className="flex justify-between gap-5 mt-8 w-full">
+            {/* Buttons */}
+            <div className="flex justify-between gap-5 mt-8 w-full">
 
-  {/* Make Constructive (Pastel Pink) */}
-  <button
-    onClick={handleAiRefine}
-    disabled={isRefining}
-    className="w-1/2 py-3 rounded-lg font-semibold text-sm 
+              {/* Make Constructive (Pastel Pink) */}
+              <button
+                onClick={handleAiRefine}
+                disabled={isRefining}
+                className="w-1/2 py-3 rounded-lg font-semibold text-sm 
     transition disabled:opacity-50"
-    style={{
-      backgroundColor: "#F28B82",
-      color: "black",
-    }}
-  >
-    {isRefining ? "Refining..." : "Make Constructive"}
-  </button>
+                style={{
+                  backgroundColor: "#F28B82",
+                  color: "black",
+                }}
+              >
+                {isRefining ? "Refining..." : "Make Constructive"}
+              </button>
 
-  {/* Publish (Pastel Yellow) */}
-  <button
-    onClick={handlePublish}
-    disabled={loading}
-    className="w-1/2 py-3 rounded-lg font-semibold text-sm 
+              {/* Publish (Pastel Yellow) */}
+              <button
+                onClick={handlePublish}
+                disabled={loading}
+                className="w-1/2 py-3 rounded-lg font-semibold text-sm 
     transition disabled:opacity-50"
-    style={{
-      backgroundColor: "#F5C76A",
-      color: "black",
-    }}
-  >
-    {loading ? "Publishing..." : " Publish"}
-  </button>
+                style={{
+                  backgroundColor: "#F5C76A",
+                  color: "black",
+                }}
+              >
+                {loading ? "Publishing..." : " Publish"}
+              </button>
 
 
-</div>
+            </div>
 
 
             {error && (
@@ -238,7 +311,7 @@ export default function Write() {
           </div>
 
           {/* RIGHT SIDE */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6">
 
             {/* Persona Selector */}
             <div className="bg-[#2A2C38] rounded-2xl p-6 border border-white/5 shadow-md">

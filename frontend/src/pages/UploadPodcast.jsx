@@ -47,7 +47,7 @@ export default function UploadPodcast() {
       console.error("Upload error:", err);
       setError(
         err.response?.data?.message ||
-          "Failed to upload podcast. Please try again."
+        "Failed to upload podcast. Please try again."
       );
     } finally {
       setLoading(false);

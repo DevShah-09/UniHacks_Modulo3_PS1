@@ -5,7 +5,7 @@ const path = require('path');
 const multer = require('multer');
 
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '../uploads/audio');
+const uploadsDir = path.join(__dirname, '../uploads/media');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -21,21 +21,33 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  // Accept audio files only
-  const audioMimes = [
+  // Accept audio, image, and video files
+  const allowedMimes = [
+    // Audio
     'audio/mpeg',
     'audio/wav',
     'audio/ogg',
     'audio/webm',
     'audio/mp4',
-    'm4a',
-    'audio/aac'
+    'audio/aac',
+    'application/octet-stream', // Some audio uploads come as octet-stream
+
+    // Images
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+
+    // Video
+    'video/mp4',
+    'video/webm',
+    'video/ogg'
   ];
 
-  if (audioMimes.includes(file.mimetype) || file.mimetype.startsWith('audio/')) {
+  if (allowedMimes.includes(file.mimetype) || file.mimetype.startsWith('audio/') || file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
     cb(null, true);
   } else {
-    cb(new Error('Only audio files are allowed'), false);
+    cb(new Error('Invalid file type. Only audio, images, and videos are allowed.'), false);
   }
 };
 

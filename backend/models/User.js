@@ -22,6 +22,30 @@ const userSchema = mongoose.Schema({
     organization: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Organization'
+    },
+    // server-side unread activity count (keeps navbar badge authoritative)
+    unreadActivityCount: {
+        type: Number,
+        default: 0
+    },
+    // User settings / privacy controls (defaults kept for backward-compat)
+    defaultAnonymityLevel: {
+        type: Number,
+        enum: [1, 2, 3],
+        default: 2
+    },
+    visibility: {
+        type: String,
+        enum: ['private', 'department', 'organization'],
+        default: 'organization'
+    },
+    allowAiFeedback: {
+        type: Boolean,
+        default: true
+    },
+    allowAnonymousComments: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

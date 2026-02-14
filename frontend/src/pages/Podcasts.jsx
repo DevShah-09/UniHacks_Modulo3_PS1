@@ -84,7 +84,7 @@ export default function Podcasts() {
               {podcasts.map((podcast, index) => {
                 const pastel =
                   ["#4BA9FF", "#B9A6FF", "#F5C76A", "#7FE6C5", "#F28B82"][
-                    index % 5
+                  index % 5
                   ];
 
                 return (

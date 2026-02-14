@@ -34,7 +34,7 @@ Post Content:
 
 Provide your response as a valid JSON object with exactly these seven fields (keep responses concise, 1-2 sentences each):
 {
-  "summary": "A single sentence summary of the post's main idea",
+  "summary": "A concise 5-6 word topic summary of the post (e.g., 'Strategies for Remote Team Alignment')",
   "mentorFeedback": "A supportive and encouraging comment acknowledging the reflection's value",
   "criticFeedback": "A logical critique pointing out potential risks or areas to reconsider",
   "strategistFeedback": "Strategic implications and long-term thinking perspective",

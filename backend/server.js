@@ -14,6 +14,9 @@ const commentRoutes = require('./routes/commentRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const organizationRoutes = require('./routes/organizationRoutes');
 const podcastRoutes = require('./routes/podcastRoutes');
+const activityRoutes = require('./routes/activityRoutes');
+const userRoutes = require('./routes/userRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 // Connect to Database
 connectDB();
@@ -36,6 +39,8 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api/podcasts', podcastRoutes);
+app.use('/api/activity', activityRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

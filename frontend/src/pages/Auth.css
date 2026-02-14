@@ -106,12 +106,15 @@
 .accent-mint::before {
   background: #7fe6c5;
 }
+
 .accent-blue::before {
   background: #4ba9ff;
 }
+
 .accent-yellow::before {
   background: #f5c76a;
 }
+
 .accent-purple::before {
   background: #b9a6ff;
 }

@@ -1,6 +1,8 @@
 @import "tailwindcss";
+
 body {
   margin: 0;
-  background-color: #1C1D25; /* Removes white background */
+  background-color: #1C1D25;
+  /* Removes white background */
   font-family: "Inter", sans-serif;
 }

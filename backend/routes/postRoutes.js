@@ -3,13 +3,14 @@ const router = express.Router();
 const { createPost, getPosts, getPost, updatePost, deletePost, getPerspectives, getSentiment, getRelatedPosts, toggleLike, regenerateAiFeedback } = require('../controllers/postController');
 const { protect } = require('../middleware/authMiddleware');
 const { ensureOrgMember } = require('../middleware/orgScopeMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
 // All post routes require authentication and org membership
 router.use(protect);
 router.use(ensureOrgMember);
 
 // POST /api/posts - Create a new post
-router.post('/', createPost);
+router.post('/', upload.single('media'), createPost);
 
 // GET /api/posts - Get all posts in organization
 router.get('/', getPosts);

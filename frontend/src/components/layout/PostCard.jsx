@@ -99,6 +99,24 @@ export default function PostCard({ post }) {
           leading-relaxed
         "
       >
+        {post.mediaUrl && (
+          <div className="mb-4">
+            {post.mediaType === "video" ? (
+              <video
+                src={`http://localhost:5000${post.mediaUrl}`}
+                controls
+                className="w-full rounded-lg border border-white/10 max-h-60 object-cover"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <img
+                src={`http://localhost:5000${post.mediaUrl}`}
+                alt="Post Media"
+                className="w-full rounded-lg border border-white/10 max-h-60 object-cover"
+              />
+            )}
+          </div>
+        )}
         {post.content.length > 200
           ? post.content.substring(0, 200) + "..."
           : post.content}
@@ -106,7 +124,7 @@ export default function PostCard({ post }) {
 
       {/* ✅ Instagram Style Actions */}
       <div className="flex items-center gap-10 pl-5 mt-5 text-gray-400">
-        
+
         {/* Like */}
         <button
           onClick={handleLike}

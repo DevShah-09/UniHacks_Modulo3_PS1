@@ -76,6 +76,18 @@ export const addOrgMember = async (orgId, email) => {
   return response.data;
 };
 
+// Activity helpers
+export const getUnreadActivityCount = async () => {
+  const response = await api.get('/activity/unread');
+  // response.data: { count: number }
+  return response.data?.count ?? 0;
+};
+
+export const clearUnreadActivityCount = async () => {
+  const response = await api.post('/activity/clear');
+  return response.data;
+};
+
 // Posts helpers
 export const searchPosts = async (query = '', tags = [], contentType = '') => {
   const params = new URLSearchParams();
@@ -166,6 +178,12 @@ export const searchPodcasts = async (query = '', tags = []) => {
 // Advanced AI features
 export const getPerspectives = async (postId) => {
   const response = await api.get(`/posts/${postId}/perspectives`);
+  return response.data;
+};
+
+// User profile
+export const getUserProfile = async (userId) => {
+  const response = await api.get(`/users/${userId}/profile`);
   return response.data;
 };
 

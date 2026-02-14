@@ -38,6 +38,11 @@ export default function Feed() {
     fetchPosts();
   }, []);
 
+  // ✅ Trending Posts Logic
+  const trendingPosts = [...posts]
+    .sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0))
+    .slice(0, 3);
+
   return (
     <div className="min-h-screen bg-[#1C1D25] text-white px-10 py-4">
       <div className="max-w-6xl mx-auto grid grid-cols-3 gap-8 mt-5">
@@ -91,9 +96,16 @@ export default function Feed() {
             </h2>
 
             <ul className="text-sm text-gray-400 space-y-3 pl-5">
-              <li>How do we prevent burnout in fast teams?</li>
-              <li>Should decisions be logged publicly?</li>
-              <li>Podcast insights: launch delays + morale</li>
+              {trendingPosts.length > 0 ? (
+                trendingPosts.map((post) => (
+                  <li key={post._id} className="truncate">
+                    {post.summary ||
+                      post.content.split(" ").slice(0, 6).join(" ") + "..."}
+                  </li>
+                ))
+              ) : (
+                <li>No trending discussions yet.</li>
+              )}
             </ul>
           </div>
 

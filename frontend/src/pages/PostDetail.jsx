@@ -197,9 +197,28 @@ export default function PostDetail() {
                 {post.author?.fullName || "Anonymous"} • {formatDate(post.createdAt)}
               </p>
 
-              <p className="text-gray-300 whitespace-pre-wrap leading-relaxed pl-3">
-                {post.content}
-              </p>
+              <div className="mb-6 pl-3">
+                {post.mediaUrl && (
+                  <div className="mb-4">
+                    {post.mediaType === "video" ? (
+                      <video
+                        src={`http://localhost:5000${post.mediaUrl}`}
+                        controls
+                        className="w-full rounded-xl border border-white/10 max-h-[500px] object-contain bg-black"
+                      />
+                    ) : (
+                      <img
+                        src={`http://localhost:5000${post.mediaUrl}`}
+                        alt="Post Media"
+                        className="w-full rounded-xl border border-white/10 max-h-[500px] object-contain bg-black"
+                      />
+                    )}
+                  </div>
+                )}
+                <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                  {post.content}
+                </p>
+              </div>
 
               {/* Reactions */}
               <div className="flex gap-3 mt-6 pl-3">

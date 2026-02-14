@@ -72,7 +72,7 @@ export default function KnowledgeHub() {
 
   return (
     <div className="min-h-screen bg-[#1C1D25] text-white">
-      
+
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 px-6 py-8">
 
@@ -90,7 +90,7 @@ export default function KnowledgeHub() {
                 tags.map((tag, index) => {
                   const pastel =
                     ["#7FE6C5", "#4BA9FF", "#F5C76A", "#F28B82", "#B9A6FF"][
-                      index % 5
+                    index % 5
                     ];
 
                   const active = selectedTags.includes(tag);
@@ -130,7 +130,7 @@ export default function KnowledgeHub() {
               {contentTypes.map((type, index) => {
                 const pastel =
                   ["#4BA9FF", "#B9A6FF", "#F28B82", "#7FE6C5"][
-                    index % 4
+                  index % 4
                   ];
 
                 const active = contentType === type.value;

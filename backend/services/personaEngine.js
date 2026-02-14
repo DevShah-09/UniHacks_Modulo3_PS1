@@ -17,8 +17,13 @@ const sentenceCase = (s) => {
 const summarize = (text) => {
   const t = sanitize(text);
   const firstSentenceMatch = t.match(/[^\.\!\?]+[\.\!\?]/);
-  if (firstSentenceMatch) return firstSentenceMatch[0].trim();
-  return t.substring(0, 120) + (t.length > 120 ? '...' : '');
+  let summary = firstSentenceMatch ? firstSentenceMatch[0].trim() : t;
+  // Enforce max length approx 10-12 words
+  const words = summary.split(' ');
+  if (words.length > 12) {
+    return words.slice(0, 12).join(' ') + '...';
+  }
+  return summary;
 };
 
 const refineFallback = (rant) => {

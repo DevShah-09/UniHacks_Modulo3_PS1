@@ -8,13 +8,41 @@ const createPost = async (req, res) => {
   try {
     const { title, content, summary, tags, anonymityLevel } = req.body;
 
+    console.log('📝 [createPost] Request received');
+    console.log('📝 [createPost] Body:', req.body);
+    console.log('📝 [createPost] File:', req.file);
+
+    let mediaUrl = null;
+    let mediaType = null;
+
+    if (req.file) {
+      mediaUrl = `/uploads/media/${req.file.filename}`;
+      if (req.file.mimetype.startsWith('image/')) {
+        mediaType = 'image';
+      } else if (req.file.mimetype.startsWith('video/')) {
+        mediaType = 'video';
+      }
+    }
+
+    // Parse fields if they come as strings (from multipart/form-data)
+    let parsedAnonymityLevel = anonymityLevel;
+    if (typeof anonymityLevel === 'string') {
+      parsedAnonymityLevel = parseInt(anonymityLevel, 10);
+    }
+
+    let parsedTags = tags;
+    if (typeof tags === 'string') {
+      // If sent as "Create,Review", split it
+      parsedTags = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+    }
+
     // Validate required fields
     if (!title || !content) {
       return res.status(400).json({ message: 'Title and content are required' });
     }
 
     // Validate anonymityLevel
-    if (anonymityLevel && ![1, 2, 3].includes(anonymityLevel)) {
+    if (parsedAnonymityLevel && ![1, 2, 3].includes(parsedAnonymityLevel)) {
       return res.status(400).json({ message: 'Anonymity level must be 1, 2, or 3' });
     }
 
@@ -22,9 +50,9 @@ const createPost = async (req, res) => {
     const aiFeedback = await analyzePost(content);
     const sentiment = await analyzeSentiment(content);
     const perspectives = await generatePerspectives(content);
-    
+
     let finalContent = content;
-    if (anonymityLevel === 3) {
+    if (parsedAnonymityLevel === 3) {
       finalContent = await scrubAnonymity(content);
     }
 
@@ -33,8 +61,10 @@ const createPost = async (req, res) => {
       content,
       scrubbedContent: finalContent !== content ? finalContent : undefined,
       summary: summary || aiFeedback.summary || '',
-      tags: tags || [],
-      anonymityLevel: anonymityLevel || 1,
+      tags: parsedTags || [],
+      anonymityLevel: parsedAnonymityLevel || 1,
+      mediaUrl,
+      mediaType,
       author: req.user._id,
       organization: req.organization,
       aiFeedback: {
@@ -75,7 +105,7 @@ const getPosts = async (req, res) => {
     console.log('📨 [getPosts] Request received');
     console.log('📨 [getPosts] Organization:', req.organization);
     console.log('📨 [getPosts] User:', req.user?._id);
-    
+
     const posts = await Post.find({ organization: req.organization })
       .populate('author', 'fullName email department')
       .sort({ createdAt: -1 });
